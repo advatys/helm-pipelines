@@ -1,9 +1,9 @@
-## ARGO VERSION 3.0.2
+# ARGO VERSION 3.0.2
 
 All the values are already configured for 3.0.2, if you want to change it, 
 can change it throgh values.yaml
 
-# Requirements
+## Requirements
 
 1) Openshift
 2) Helm
@@ -13,20 +13,20 @@ can change it throgh values.yaml
 ## Some Installation Command
 Use the Install command of helm to install argo and argo-events.
 
-# helm install <folder path> --generate-name
+## helm install <folder path> --generate-name
 
 This would apply all the templates.
-# kubectl apply -f <filename>
+## kubectl apply -f <filename>
 
 To create role binding , if service account is different then please change the service account
 
-# kubectl create rolebinding default-admin --clusterrole=admin --serviceaccount=default:default
+## kubectl create rolebinding default-admin --clusterrole=admin --serviceaccount=default:default
 
 For the workflow to be working on the openshift , change the configmap from docker to pns with
 command:
-# kubectl get configmap
+## kubectl get configmap
 
-# kubectl edit configmap 
+## kubectl edit configmap 
 
 -------------------------------------------------------------------------------------------
 
