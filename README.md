@@ -16,7 +16,7 @@ Use the Install command of helm to install argo and argo-events.
 ## helm install <folder path> --generate-name
 
 This would apply all the templates.
-## kubectl apply -f <filename>
+## kubectl apply -f filename.txt
 
 To create role binding , if service account is different then please change the service account
 
