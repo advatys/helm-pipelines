@@ -26,7 +26,7 @@ For the workflow to be working on the openshift , change the configmap from dock
 command:
 > kubectl get configmap
 
-> kubectl edit configmap 
+> kubectl edit configmap CONTROLLER_CONFIGMAP_NAME
 
 -------------------------------------------------------------------------------------------
 
