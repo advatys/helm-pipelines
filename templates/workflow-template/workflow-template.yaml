@@ -5,43 +5,154 @@ metadata:
 spec:
   arguments:
     parameters:
-    - name: secret
-      value: <secret_key>
-    - name: access
-      value: <access_key>
-    - name: github
-      value: "<github_url>"
-    - name: region
-      value: <aws_region>
-    - name: registry
-      value: "<registry_name>"
-    - name: imagename
-      value: "<image_name>"
+    - name: git-repository-type
+      value: private                              # Can be private or public accordingly, private creds to be stored in a secret .
+      
+    - name: public-url
+      value: "https://github.com/Ishu27/test-argo-workflow.git"
 
-  entrypoint: generate-token
+    - name: registry-type
+      value: "aws"                    # Can be "aws" or "others".
+
+    - name: region                    # Set when registry type is aws .
+      value: us-east-1
+
+    - name: registry
+      value: "public.ecr.aws/h8x3r6g1"
+    - name: chartname
+      value: "public.ecr.aws/h8x3r6g1/test-argo:v2"
+
+  entrypoint: generate-token                
+  volumeClaimTemplates:               # Volume claim to store git repository.
+  - metadata:
+      name: workdir
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 1Gi
+  
+  volumes:
+  - name: aws-secrets
+    secret:
+      secretName: aws-secret
+
   templates:
   - name: generate-token
     steps:
-    - - name: generate
+    - - name: pull-public-repo
+        template: pull-public-repo
+        when: "{{ workflow.parameters.git-repository-type }} == public"
+
+    - - name: pull-private-repo
+        template: pull-private-repo
+        when: "{{ workflow.parameters.git-repository-type }} == private"
+
+    - - name: create-token
         template: gen-token-bash
-    - - name: push
-        template: push-to-registry
+        when: "{{ workflow.parameters.registry-type }} == aws"
+
+    - - name: aws-login
+        template: aws-login
+        when: "{{ workflow.parameters.registry-type }} == aws"
         arguments:
           parameters:
           - name: token
-            value: "{{steps.generate.outputs.result}}"  
+            value: "{{steps.create-token.outputs.result}}"
+
+    - - name: others-login
+        template: others
+        when: "{{ workflow.parameters.registry-type }} == others"
+
+  - name: pull-public-repo
+    container:
+      image: alpine/git:v2.30.2
+      imagePullPolicy: IfNotPresent
+      command: [sh, -c]
+      args: ["cd /mnt/vol; git clone {{ workflow.parameters.public-url }} git-local-dir"]
+      volumeMounts:
+      - name: workdir
+        mountPath: /mnt/vol
+
+  - name: pull-private-repo
+    container:
+      image: alpine/git:v2.30.2
+      imagePullPolicy: IfNotPresent
+       
+      env:
+      - name: git_username
+        valueFrom:
+          secretKeyRef:
+            name: git-secret
+            key: GIT_USERNAME
+      - name: git_token
+        valueFrom:
+          secretKeyRef:
+            name: git-secret
+            key: GIT_TOKEN
+      - name: repo_name
+        valueFrom:
+          secretKeyRef:
+            name: git-secret
+            key: REPO_NAME
+
+      command: [sh, -c]
+      args: ["cd /mnt/vol; git clone https://$git_token:x-oauth-basic@github.com/$git_username/$repo_name.git git-local-dir"]
+      volumeMounts:
+      - name: workdir
+        mountPath: /mnt/vol
+      
 
   - name: gen-token-bash
-    script:
-      image: amazon/aws-cli
-      command: [bash]
-      source: |                                        
-        export AWS_ACCESS_KEY_ID={{ workflow.parameters.access }} && export AWS_SECRET_ACCESS_KEY={{ workflow.parameters.secret }} && export AWS_DEFAULT_REGION={{ workflow.parameters.region }} && /usr/local/bin/aws ecr-public get-login-password --region {{ workflow.parameters.region }}
-  - name: push-to-registry
+    container:
+      image: amazon/aws-cli:2.2.4
+      imagePullPolicy: IfNotPresent
+      command: [sh, -c]
+      args: ["export AWS_ACCESS_KEY_ID=$access_key && export AWS_SECRET_ACCESS_KEY=$secret_key && export AWS_DEFAULT_REGION={{ workflow.parameters.region }} && /usr/local/bin/aws ecr-public get-login-password --region {{ workflow.parameters.region }}"]
+      env:
+      - name: access_key
+        valueFrom:
+          secretKeyRef:
+            name: aws-secret
+            key: AWS_ACCESS
+      - name: secret_key
+        valueFrom:
+          secretKeyRef:
+            name: aws-secret
+            key: AWS_SECRET
+
+  - name: aws-login
     inputs:
       parameters:
       - name: token
     container:
-      image: alpine/helm
+      image: alpine/helm:3.5.4
+      imagePullPolicy: IfNotPresent
       command: [sh, -c]
-      args: ["apk add --update git; git clone {{ workflow.parameters.github }}; DIR_TEST=$(ls) && cd $DIR_TEST && ls && export HELM_EXPERIMENTAL_OCI=1 && echo {{ inputs.parameters.token }} | helm registry login --username AWS --password-stdin {{ workflow.parameters.registry }}; helm chart save . {{ workflow.parameters.imagename }} && helm chart push {{ workflow.parameters.imagename }}"]
+      args: ["export HELM_EXPERIMENTAL_OCI=1 && echo {{ inputs.parameters.token }} | helm registry login --username AWS --password-stdin {{ workflow.parameters.registry }}; cd /mnt/vol/git-local-dir && helm chart save . {{ workflow.parameters.chartname }} && helm chart push {{ workflow.parameters.chartname }}"]
+      volumeMounts:
+      - name: workdir
+        mountPath: /mnt/vol
+
+  - name: others
+    container:
+      image: alpine/helm:3.5.4
+      imagePullPolicy: IfNotPresent
+      command: [sh, -c]
+      args: ["export HELM_EXPERIMENTAL_OCI=1 && helm registry login {{ workflow.parameters.registry }} --username $registry_username --password $registry_password ; cd /mnt/vol/git-local-dir && helm chart save . {{ workflow.parameters.chartname }} && helm chart push {{ workflow.parameters.chartname }} "]
+
+      env:
+      - name: registry_username
+        valueFrom:
+          secretKeyRef:
+            name: password
+            key: USERNAME
+      - name: registry_password
+        valueFrom:
+          secretKeyRef:
+            name: aws-secret
+            key: password
+
+      volumeMounts:
+      - name: workdir
+        mountPath: /mnt/vol
