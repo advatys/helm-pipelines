@@ -2,7 +2,6 @@ apiVersion: argoproj.io/v1alpha1
 kind: WorkflowEventBinding
 metadata:
   name: event-bind-workflow
-  namespaces: default
 spec:
   event:
     selector: "true"
