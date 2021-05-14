@@ -1,5 +1,5 @@
 apiVersion: argoproj.io/v1alpha1
-kind: Workflow
+kind: WorkflowTemplate
 metadata:
   name: push-to-registry-template
 spec:
@@ -12,14 +12,13 @@ spec:
       value: "git_url"
 
     - name: registry-type
-      value: "private_registry"                    # Can be "aws" or "private_registry"
+      value: "aws"                                  # Can be "aws" or "private-registry"
 
-    - name: region                                 # Set when registry type is aws 
-      value: "region_name"
+    - name: region                                  # Set when registry type is aws 
+      value: us-east-1
 
     - name: registry
       value: "registry_name"
-
     - name: chartname
       value: "chart_name"
 
@@ -49,16 +48,16 @@ spec:
         when: "{{ workflow.parameters.registry-type }} == aws"
 
     - - name: aws-login
-        template: login
+        template: aws-login
         when: "{{ workflow.parameters.registry-type }} == aws"
         arguments:
           parameters:
           - name: token
             value: "{{steps.create-token.outputs.result}}"
 
-    - - name: private-registry
+    - - name: private-registry-login
         template: private-registry
-        when: "{{ workflow.parameters.registry-type }} == private_registry"
+        when: "{{ workflow.parameters.registry-type }} == private-registry"
 
   - name: pull-repo
     script:
@@ -116,7 +115,7 @@ spec:
             name: aws-secret
             key: AWS_SECRET
 
-  - name: login
+  - name: aws-login
     inputs:
       parameters:
       - name: token
@@ -143,8 +142,7 @@ spec:
       source: |
         export HELM_EXPERIMENTAL_OCI=1 
         helm registry login {{ workflow.parameters.registry }} --username $registry_username --password $registry_password
-        cd /mnt/vol/git-local-dir
-        helm chart save . {{ workflow.parameters.chartname }}
+        cd /mnt/vol/git-local-dir && helm chart save . {{ workflow.parameters.chartname }}
         helm chart push {{ workflow.parameters.chartname }}
 
       env:
