@@ -4,12 +4,13 @@ kind: EventSource
 metadata:
   name: github
 spec:
+  eventBusName: argo-configuration-default
   service:
     ports:
       - port: 12000
         targetPort: 12000
   github:
-    example:
+    push:
       repositories:
         - owner: itmwiw
           names:
