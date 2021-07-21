@@ -141,11 +141,14 @@ spec:
       imagePullPolicy: IfNotPresent
       command: [sh]
       source: |
-        export HELM_EXPERIMENTAL_OCI=1 
-        helm registry login {{ workflow.parameters.registry }} --username $registry_username --password $registry_password
         cd /mnt/vol/git-local-dir
-        helm chart save . {{ workflow.parameters.chartname }}
-        helm chart push {{ workflow.parameters.chartname }}
+        helm package .
+        curl --data-binary "@$(grep -A0 'name:' ./Chart.yaml | awk '{ print $2}')-$(grep -A0 'version:' ./Chart.yaml | awk '{ print $2}').tgz" {{ workflow.parameters.registry }}/api/charts
+#        export HELM_EXPERIMENTAL_OCI=1 
+#        helm registry login {{ workflow.parameters.registry }} --username $registry_username --password $registry_password
+#        cd /mnt/vol/git-local-dir
+#        helm chart save . {{ workflow.parameters.chartname }}
+#        helm chart push {{ workflow.parameters.chartname }}
 
       env:
       - name: registry_username
