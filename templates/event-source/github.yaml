@@ -40,7 +40,7 @@ spec:
         # Name of the K8s secret that contains the access token
         name: git-secret
         # Key within the K8s secret whose corresponding value (must be base64 encoded) is access token
-        key: git_token
+        key: GIT_TOKEN
 
 #      # webhookSecret refers to K8s secret that stores the github hook secret
 #      # +optional
