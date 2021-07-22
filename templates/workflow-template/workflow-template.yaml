@@ -64,7 +64,7 @@ spec:
         when: "{{ workflow.parameters.registry-type }} == private_registry"
         
     - - name: chartmuseum-registry
-        template: private-registry
+        template: chartmuseum-registry
         when: "{{ workflow.parameters.registry-type }} == chartmuseum"
 
   - name: pull-repo
