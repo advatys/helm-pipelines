@@ -184,13 +184,13 @@ spec:
       - name: registry_username
         valueFrom:
           secretKeyRef:
-            name: password
-            key: USERNAME
+            name: charmuseum-secret
+            key: CHARTMUSEUM_USERNAME
       - name: registry_password
         valueFrom:
           secretKeyRef:
-            name: aws-secret
-            key: password
+            name: charmuseum-secret
+            key: CHARTMUSEUM_PASSWORD
       volumeMounts:
       - name: workdir
         mountPath: /mnt/vol
