@@ -62,9 +62,13 @@ spec:
     - - name: private-registry
         template: private-registry
         when: "{{ workflow.parameters.registry-type }} == private_registry"
+
+    - - name: helm-package
+        template: helm-package
+        when: "{{ workflow.parameters.registry-type }} == chartmuseum"
         
-    - - name: chartmuseum-registry
-        template: chartmuseum-registry
+    - - name: push-to-chartmuseum
+        template: push-to-chartmuseum
         when: "{{ workflow.parameters.registry-type }} == chartmuseum"
 
   - name: pull-repo
@@ -169,7 +173,7 @@ spec:
       - name: workdir
         mountPath: /mnt/vol
 
-  - name: chartmuseum-registry
+  - name: helm-package
     script:
       image: alpine/helm:3.5.4
       imagePullPolicy: IfNotPresent
@@ -178,6 +182,17 @@ spec:
         cd /mnt/vol/git-local-dir
         cd {{ workflow.parameters.git-path }}
         helm package .
+
+      volumeMounts:
+      - name: workdir
+        mountPath: /mnt/vol
+
+  - name: push-to-chartmuseum
+    script:
+      image: curlimages/curl
+      imagePullPolicy: IfNotPresent
+      command: [sh]
+      source: |
         curl --data-binary "@$(grep -A0 'name:' ./Chart.yaml | awk '{ print $2}')-$(grep -A0 'version:' ./Chart.yaml | awk '{ print $2}').tgz" {{ workflow.parameters.registry }}/api/charts
 
       env:
