@@ -47,7 +47,8 @@ spec:
               apiVersion: argoproj.io/v1alpha1
               kind: Workflow
               metadata:
-                name: github-
+#                name: github-
+                generateName: github-     
               spec:
                 entrypoint: whalesay
                 arguments:
