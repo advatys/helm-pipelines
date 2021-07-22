@@ -10,6 +10,9 @@ spec:
       
     - name: git-url
       value: "git_url"
+    
+    - name: git-path
+      value: "git_path"
 
     - name: registry-type
       value: "private_registry"                    # Can be "aws" or "private_registry"
@@ -59,6 +62,10 @@ spec:
     - - name: private-registry
         template: private-registry
         when: "{{ workflow.parameters.registry-type }} == private_registry"
+        
+    - - name: chartmuseum-registry
+        template: private-registry
+        when: "{{ workflow.parameters.registry-type }} == chartmuseum"
 
   - name: pull-repo
     script:
@@ -141,14 +148,37 @@ spec:
       imagePullPolicy: IfNotPresent
       command: [sh]
       source: |
+        export HELM_EXPERIMENTAL_OCI=1 
+        helm registry login {{ workflow.parameters.registry }} --username $registry_username --password $registry_password
         cd /mnt/vol/git-local-dir
+        helm chart save . {{ workflow.parameters.chartname }}
+        helm chart push {{ workflow.parameters.chartname }}
+
+      env:
+      - name: registry_username
+        valueFrom:
+          secretKeyRef:
+            name: password
+            key: USERNAME
+      - name: registry_password
+        valueFrom:
+          secretKeyRef:
+            name: aws-secret
+            key: password
+      volumeMounts:
+      - name: workdir
+        mountPath: /mnt/vol
+
+  - name: chartmuseum-registry
+    script:
+      image: alpine/helm:3.5.4
+      imagePullPolicy: IfNotPresent
+      command: [sh]
+      source: |
+        cd /mnt/vol/git-local-dir
+        cd {{ workflow.parameters.git-path }}
         helm package .
         curl --data-binary "@$(grep -A0 'name:' ./Chart.yaml | awk '{ print $2}')-$(grep -A0 'version:' ./Chart.yaml | awk '{ print $2}').tgz" {{ workflow.parameters.registry }}/api/charts
-#        export HELM_EXPERIMENTAL_OCI=1 
-#        helm registry login {{ workflow.parameters.registry }} --username $registry_username --password $registry_password
-#        cd /mnt/vol/git-local-dir
-#        helm chart save . {{ workflow.parameters.chartname }}
-#        helm chart push {{ workflow.parameters.chartname }}
 
       env:
       - name: registry_username
