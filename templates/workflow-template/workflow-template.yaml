@@ -201,12 +201,12 @@ spec:
       - name: registry_username
         valueFrom:
           secretKeyRef:
-            name: charmuseum-secret
+            name: chartmuseum-secret
             key: CHARTMUSEUM_USERNAME
       - name: registry_password
         valueFrom:
           secretKeyRef:
-            name: charmuseum-secret
+            name: chartmuseum-secret
             key: CHARTMUSEUM_PASSWORD
       volumeMounts:
       - name: workdir
