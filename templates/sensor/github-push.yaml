@@ -57,16 +57,28 @@ spec:
                     - name: git-repository
                     - name: git-ref
                 templates:
+                  - name: call-push-to-registry-template
+                    dag:
+                      tasks:
+                        - name: call-push-to-registry-template
+                          templateRef:
+                            name: push-to-registry-template
+                            template: generate-token
+#                          arguments:
+#                            parameters:
+#                            - name: message
+#                              value: "hello world"
+
                   - name: whalesay
                     inputs:
                       parameters:
                         - name: git-owner
                         - name: git-repository
-                        - name: git-ref
+                        - name: git-commits
                     container:
                       image: docker/whalesay:latest
                       command: [cowsay]
-                      args: ["{{inputs.parameters.git-repository}}"]
+                      args: ["{{inputs.parameters.git-commits}}"]
           parameters:
             - src:
                 dependencyName: github-push-event
@@ -78,7 +90,7 @@ spec:
               dest: spec.arguments.parameters.1.value
             - src:
                 dependencyName: github-push-event
-                dataTemplate: "{{ .Input.body.ref | substr 0 7 }}"
+                dataTemplate: "{{ .Input.body.commits | first }}"
               dest: spec.arguments.parameters.2.value
             # Append pull request number and short sha to dynamically assign worklfow name <github-21500-2c065a>
  #           - src:
