@@ -51,6 +51,7 @@ spec:
                 generateName: github-     
               spec:
                 entrypoint: call-push-to-registry-template
+                
                 volumeClaimTemplates:
                 - metadata:
                     name: workdir
@@ -70,6 +71,28 @@ spec:
                     - name: git-owner
                     - name: git-repository
                     - name: git-commits
+                    
+                    - name: git-repository-type
+                      value: "private"                              # Can be private or public accordingly, private creds to be stored in a secret 
+                      
+                    - name: git-url
+                      value: "git_url"
+                    
+                    - name: git-path
+                      value: "memcached-cloud"
+                    
+                    - name: registry-type
+                      value: "chartmuseum"                    # Can be "aws" or "private_registry"
+                    
+                    - name: region                                 # Set when registry type is aws 
+                      value: "region_name"
+                    
+                    - name: registry
+                      value: "http://chartmuseum.apps.advatys.thadvatys.com"
+                    
+                    - name: chartname
+                      value: "chart_name"
+                      
                 templates:
                   - name: call-push-to-registry-template
                     dag:
