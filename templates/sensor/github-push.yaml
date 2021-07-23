@@ -51,19 +51,19 @@ spec:
                 generateName: github-     
               spec:
                 entrypoint: call-push-to-registry-template
-                  volumeClaimTemplates:
-                  - metadata:
-                      name: workdir
-                    spec:
-                      accessModes: [ "ReadWriteOnce" ]
-                      resources:
-                        requests:
-                          storage: 1Gi
-                  
-                  volumes:
-                  - name: aws-secrets
-                    secret:
-                      secretName: aws-secret
+                volumeClaimTemplates:
+                - metadata:
+                    name: workdir
+                  spec:
+                    accessModes: [ "ReadWriteOnce" ]
+                    resources:
+                      requests:
+                        storage: 1Gi
+                
+                volumes:
+                - name: aws-secrets
+                  secret:
+                    secretName: aws-secret
                       
                 arguments:
                   parameters:
