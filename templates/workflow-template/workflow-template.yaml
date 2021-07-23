@@ -83,13 +83,13 @@ spec:
         else
           cd /mnt/vol && git clone {{ workflow.parameters.git-url }} git-local-dir
         fi
-        echo -n helm-minio-crd > /mnt/vol/git-path.txt
-    outputs:
-      parameters:
-      - name: git-path
-        valueFrom:
-#          default: "Foobar"   # Default value to use if retrieving valueFrom fails. If not provided workflow will fail instead
-          path: /tmp/git-path.txt
+        echo -n helm-minio-crd > git-path.txt
+        if [[ -s git-path.txt ]]
+        then
+          echo 'ok'
+        else
+          echo 'ko'
+        fi
 
       env:
       - name: git_username
