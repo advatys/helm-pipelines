@@ -195,7 +195,7 @@ spec:
       source: |
         cd /mnt/vol/git-local-dir
         cd {{ workflow.parameters.git-path }}
-        curl --data-binary "@$(grep -A0 '^name:' ./Chart.yaml | awk '{ print $2}')-$(grep -A0 '^version:' ./Chart.yaml | awk '{ print $2}').tgz" {{ workflow.parameters.registry }}/api/charts
+        curl -H 'Authorization:Basic $(echo $registry_username:$registry_password | base64)' --data-binary "@$(grep -A0 '^name:' ./Chart.yaml | awk '{ print $2}')-$(grep -A0 '^version:' ./Chart.yaml | awk '{ print $2}').tgz" {{ workflow.parameters.registry }}/api/charts
 
       env:
       - name: registry_username
