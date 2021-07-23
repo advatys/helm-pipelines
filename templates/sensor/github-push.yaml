@@ -50,12 +50,26 @@ spec:
 #                name: github-
                 generateName: github-     
               spec:
-                entrypoint: whalesay
+                entrypoint: call-push-to-registry-template
+                  volumeClaimTemplates:
+                  - metadata:
+                      name: workdir
+                    spec:
+                      accessModes: [ "ReadWriteOnce" ]
+                      resources:
+                        requests:
+                          storage: 1Gi
+                  
+                  volumes:
+                  - name: aws-secrets
+                    secret:
+                      secretName: aws-secret
+                      
                 arguments:
                   parameters:
                     - name: git-owner
                     - name: git-repository
-                    - name: git-ref
+                    - name: git-commits
                 templates:
                   - name: call-push-to-registry-template
                     dag:
