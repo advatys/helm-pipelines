@@ -12,7 +12,7 @@ spec:
       value: "git_url"
     
     - name: git-path
-      value: "data-cloud-infra"
+      value: "database-cloud-infra"
 
     - name: registry-type
       value: "chartmuseum"                    # Can be "aws" or "private_registry"
