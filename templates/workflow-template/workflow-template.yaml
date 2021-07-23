@@ -86,11 +86,11 @@ spec:
         else
           cd /mnt/vol && git clone {{ workflow.parameters.git-url }} git-local-dir
         fi
-        if [[ workflow.parameters.git-commits == "no_commit" ]]
+        if [[ {{ workflow.parameters.git-commits }} == "no_commit" ]]
         then
-          echo -n helm-minio-crd > git-path.txt
-        else
           echo {{ workflow.parameters.git-path }} > git-path.txt
+        else
+          echo -n helm-minio-crd > git-path.txt
         fi
 
 
