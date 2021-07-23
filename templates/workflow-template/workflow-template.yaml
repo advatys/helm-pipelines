@@ -12,16 +12,16 @@ spec:
       value: "git_url"
     
     - name: git-path
-      value: "git_path"
+      value: "data-cloud-infra"
 
     - name: registry-type
-      value: "private_registry"                    # Can be "aws" or "private_registry"
+      value: "chartmuseum"                    # Can be "aws" or "private_registry"
 
     - name: region                                 # Set when registry type is aws 
       value: "region_name"
 
     - name: registry
-      value: "registry_name"
+      value: "http://chartmuseum.apps.advatys.thadvatys.com"
 
     - name: chartname
       value: "chart_name"
