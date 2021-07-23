@@ -190,7 +190,7 @@ spec:
       command: [sh]
       source: |
         cd /mnt/vol/git-local-dir
-        cd $(cat git-path.txt)
+        cd $(cat ../git-path.txt)
         helm package .
 
       volumeMounts:
@@ -204,7 +204,7 @@ spec:
       command: [sh]
       source: |
         cd /mnt/vol/git-local-dir
-        cd $(cat git-path.txt)
+        cd $(cat ../git-path.txt)
         curl --user $registry_username:$registry_password --data-binary "@$(grep -A0 '^name:' ./Chart.yaml | awk '{ print $2}')-$(grep -A0 '^version:' ./Chart.yaml | awk '{ print $2}').tgz" {{ workflow.parameters.registry }}/api/charts
 
       env:
