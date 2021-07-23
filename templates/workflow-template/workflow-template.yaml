@@ -5,6 +5,9 @@ metadata:
 spec:
   arguments:
     parameters:
+    - name: git-commits
+      value: "no_commit"
+      
     - name: git-repository-type
       value: "private"                              # Can be private or public accordingly, private creds to be stored in a secret 
       
@@ -83,13 +86,12 @@ spec:
         else
           cd /mnt/vol && git clone {{ workflow.parameters.git-url }} git-local-dir
         fi
-        echo -n helm-minio-crd > git-path.txt
-        if [[ -s git-path.txt ]]
-        then
-          echo 'ok'
+        if [[ workflow.parameters.git-commits == "no_commit" ]]
+          echo -n helm-minio-crd > git-path.txt
         else
-          echo 'ko'
+          echo {{ workflow.parameters.git-path }} > git-path.txt
         fi
+
 
       env:
       - name: git_username
@@ -187,7 +189,7 @@ spec:
       command: [sh]
       source: |
         cd /mnt/vol/git-local-dir
-        cd {{ workflow.parameters.git-path }}
+        cd $(cat git-path.txt)
         helm package .
 
       volumeMounts:
@@ -201,7 +203,7 @@ spec:
       command: [sh]
       source: |
         cd /mnt/vol/git-local-dir
-        cd {{ workflow.parameters.git-path }}
+        cd $(cat git-path.txt)
         curl --user $registry_username:$registry_password --data-binary "@$(grep -A0 '^name:' ./Chart.yaml | awk '{ print $2}')-$(grep -A0 '^version:' ./Chart.yaml | awk '{ print $2}').tgz" {{ workflow.parameters.registry }}/api/charts
 
       env:
