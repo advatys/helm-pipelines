@@ -98,6 +98,7 @@ spec:
           else
             echo -n helm-minio-crd > git-path.txt
             echo  {{ "{{" }} workflow.parameters.git-commits {{ "}}" }}
+            jq
           fi
         fi
 
