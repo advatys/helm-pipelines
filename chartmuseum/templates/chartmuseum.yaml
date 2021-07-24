@@ -1,0 +1,37 @@
+{{- $relname := .Release.Name -}}
+{{- $targetNamespace := .Values.argocdConfig.targetNamespace -}}
+{{- $project := .Values.argocdConfig.project.name -}}
+{{- $repourl := .Values.chartmuseum.repository.url -}}
+{{- $repoversion := .Values.chartmuseum.repository.version -}}
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: "{{ $relname }}-chartmuseum"
+
+spec:
+  generators: 
+{{ toYaml .Values.argocdConfig.generators | nindent 4 }}
+
+  template:
+    metadata:
+      name: 'chartmuseum-{{ "{{" }}name{{ "}}" }}'
+    spec:
+      destination:
+        namespace: 'chartmuseum'
+        server: '{{ "{{" }}server{{ "}}" }}'
+      project: '{{ $project }}'
+      source:
+        repoURL: 'https://chartmuseum.github.io/charts' #'{{ $repourl }}'
+        targetRevision: '{{ $repoversion }}'
+        chart: chartmuseum
+
+        helm:
+          releaseName: 'chartmuseum'
+          values: |
+{{ toYaml .Values.chartmuseum.config | indent 12 }}
+            
+      syncPolicy:
+        automated:
+          prune: true
+        syncOptions:
+          - CreateNamespace=true

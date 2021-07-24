@@ -1,14 +1,14 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Sensor
 metadata:
-  name: github-push
+  name: {{ .Release.Name }}-github-push
 spec:
-  eventBusName: argo-configuration-default
+  eventBusName: {{ if eq .Values.eventbus.enabled "true" }}{{ .Release.Name }}-default{{ else }}{{ .Values.eventbus.eventbusName }}{{ end }}
   template:
-    serviceAccountName: argo-configuration-operate-workflow-sa
+    serviceAccountName: {{ if eq .Values.rbac.operateWorkflow "true" }}{{ .Release.Name }}-operate-workflow-sa{{ else }}{{ .Values.rbac.operateWorkflowSaName }}{{ end }}
   dependencies:
     - name: github-push-event
-      eventSourceName: github
+      eventSourceName: {{ .Release.Name }}-github-events
       eventName: push
 #      filters:
 #        data:
@@ -64,7 +64,7 @@ spec:
                 volumes:
                 - name: aws-secrets
                   secret:
-                    secretName: aws-secret
+                    secretName: {{ .Values.secrets.aws.name }}
                       
                 arguments:
                   parameters:
@@ -73,22 +73,22 @@ spec:
                     - name: git-commits
                     
                     - name: git-repository-type
-                      value: "private"                              # Can be private or public accordingly, private creds to be stored in a secret 
+                      value: {{ .Values.github.repository.type }}
                       
                     - name: git-url
                       value: "git_url"
                     
                     - name: git-path
-                      value: "memcached-cloud"
+                      value: {{ .Values.github.repository.path.default }}
                     
                     - name: registry-type
-                      value: "chartmuseum"                    # Can be "aws" or "private_registry"
+                      value: {{ .Values.registry.type }}
                     
-                    - name: region                                 # Set when registry type is aws 
-                      value: "region_name"
+                    - name: region                                  
+                      value: {{ .Values.registry.region }}
                     
                     - name: registry
-                      value: "http://chartmuseum.apps.advatys.thadvatys.com"
+                      value: {{ .Values.registry.url }}
                     
                     - name: chartname
                       value: "chart_name"
@@ -99,23 +99,14 @@ spec:
                       tasks:
                         - name: call-push-to-registry-template
                           templateRef:
-                            name: push-to-registry-template
+                            name: {{ .Release.Name }}-push-to-registry-template
                             template: generate-token
 #                          arguments:
 #                            parameters:
 #                            - name: message
 #                              value: "hello world"
 
-                  - name: whalesay
-                    inputs:
-                      parameters:
-                        - name: git-owner
-                        - name: git-repository
-                        - name: git-commits
-                    container:
-                      image: docker/whalesay:latest
-                      command: [cowsay]
-                      args: ["{{inputs.parameters.git-commits}}"]
+
           parameters:
             - src:
                 dependencyName: github-push-event
@@ -127,12 +118,12 @@ spec:
               dest: spec.arguments.parameters.1.value
             - src:
                 dependencyName: github-push-event
-                dataTemplate: "{{ .Input.body.commits | first }}"
+                dataTemplate: '{{ "{{" }} .Input.body.commits | first {{ "}}" }}' 
               dest: spec.arguments.parameters.2.value
             # Append pull request number and short sha to dynamically assign worklfow name <github-21500-2c065a>
  #           - src:
  #               dependencyName: github-push-event
- #               dataTemplate: "{{ .Input.body.pull_request.number }}-{{ .Input.body.pull_request.head.sha | substr 0 7 }}"
+ #               dataTemplate: "{{ "{{" }} .Input.body.pull_request.number {{ "}}" }}-{{ "{{" }} .Input.body.pull_request.head.sha | substr 0 7 {{ "}}" }}"
  #             dest: metadata.name
  #             operation: append
 #      retryStrategy:

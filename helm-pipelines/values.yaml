@@ -1,0 +1,51 @@
+github:
+  repository:
+    type: private # Can be private or public accordingly, private creds to be stored in a secret
+    owner: itmwiw
+    names:
+    - advatys
+    path:
+      # the path shall be automatically determined using github webhook's data. 
+      # still a default path can be usefull when launching helm pipeline's workflow manually
+      default: default_path
+  webhook:
+    # url the event-source will use to register at Github.
+    # This url must be reachable from outside the cluster.
+    url: github-event.apps.advatys.thadvatys.com
+    route: "true" # if set to true, an openshift route will be created
+
+registry:
+  type: chartmuseum # Can be "aws", "private_registry" or "chartmuseum"
+  url: http://chartmuseum.apps.advatys.thadvatys.com
+  region: region_name # Set when registry type is aws 
+    
+secrets:
+  # when generate is set to true, this will generate a secret with required keys.
+  # those secrets' values should be replaced with real values (ex: git token, etc.)
+  git:
+    generate: "true" # when set to true, generate a secret with required keys.
+    name: git-secret
+  aws:
+    generate: "true"
+    name: aws-secret
+  chartmuseum:
+    generate: "true"
+    name: chartmuseum-secret
+
+eventbus:
+  enabled: "true"
+  replicas: 3
+  persistence:
+    storageClassName: gp2
+    accessMode: ReadWriteOnce
+    volumeSize: 2Gi
+  containerTemplate:
+    resources:
+      requests:
+        cpu: "10m"
+  eventbusName: # Required if eventbus.enabled is set to false. Ignored otherwise.
+        
+rbac: 
+  default: "true" # grant namespace's default sa the privileges required by argo-workflow to watch pods and get logs. Set to false if already granted
+  operateWorkflow: "true" # create the sa and RBACs used by argo-events' sensor to create workflows. Set to false if already created.
+  operateWorkflowSaName: # Required if operateWorkflow is set to false. Ignored otherwise.

@@ -1,0 +1,43 @@
+chartmuseum:
+  repository:
+    version: 3.1.0
+  config:
+    env:
+      open:
+        # storage backend, can be one of: local, alibaba, amazon, google, microsoft, oracle
+        STORAGE: local
+        DISABLE_API: false
+        # allow anonymous GET operations when auth is used
+        AUTH_ANONYMOUS_GET: false
+        # enable bearer auth
+        BEARER_AUTH: false
+        # auth realm used for bearer auth
+        AUTH_REALM:
+        # auth service used for bearer auth
+        AUTH_SERVICE:
+      existingSecret: chartmuseum-secret
+      existingSecretMappings:
+        # username for basic http authentication
+        BASIC_AUTH_USER: CHARTMUSEUM_USERNAME
+        # password for basic http authentication
+        BASIC_AUTH_PASS: CHARTMUSEUM_PASSWORD
+    bearerAuth:
+      secret:
+        enabled: false
+        publicKeySecret: chartmuseum-public-key
+    securityContext:
+      enabled: true
+      fsGroup: null
+      runAsNonRoot: true
+    persistence:
+      enabled: true
+      accessMode: ReadWriteOnce
+      size: 8Gi
+      storageClass: "gp2"
+
+
+argocdConfig:
+  generators: []
+  project:
+    create: false
+    name: default

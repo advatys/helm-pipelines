@@ -2,9 +2,9 @@
 apiVersion: argoproj.io/v1alpha1
 kind: EventSource
 metadata:
-  name: github
+  name: {{ .Release.Name }}-github-events
 spec:
-  eventBusName: argo-configuration-default
+  eventBusName: {{ if eq .Values.eventbus.enabled "true" }}{{ .Release.Name }}-default{{ else }}{{ .Values.eventbus.eventbusName }}{{ end }}
   service:
     ports:
       - port: 12000
@@ -12,9 +12,9 @@ spec:
   github:
     push:
       repositories:
-        - owner: itmwiw
-          names:
-            - advatys
+        - owner: {{ .Values.github.repository.owner }}
+          names:          
+{{ toYaml .Values.github.repository.names | indent 10 }}
       # Github will send events to following port and endpoint
       webhook:
         # endpoint to listen to events on
@@ -27,7 +27,7 @@ spec:
         # This url must be reachable from outside the cluster.
         # The name for the service is in `<event-source-name>-eventsource-svc` format.
         # You will need to create an Ingress or Openshift Route for the event-source service so that it can be reached from GitHub.
-        url: http://github-event.apps.advatys.thadvatys.com
+        url: http://{{ .Values.github.webhook.url }}
       # type of events to listen to.
       # following listens to everything, hence *
       # You can find more info on https://developer.github.com/v3/activity/events/types/

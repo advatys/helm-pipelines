@@ -1,33 +1,35 @@
 apiVersion: argoproj.io/v1alpha1
 kind: WorkflowTemplate
 metadata:
-  name: push-to-registry-template
+  name: {{ .Release.Name }}-push-to-registry-template
 spec:
   arguments:
     parameters:
+    
     - name: git-commits
       value: "no_commit"
-      
+    
     - name: git-repository-type
-      value: "private"                              # Can be private or public accordingly, private creds to be stored in a secret 
+      value: {{ .Values.github.repository.type }}
       
     - name: git-url
       value: "git_url"
     
     - name: git-path
-      value: "database-cloud-infra"
-
+      value: {{ .Values.github.repository.path.default }}
+    
     - name: registry-type
-      value: "chartmuseum"                    # Can be "aws" or "private_registry"
-
-    - name: region                                 # Set when registry type is aws 
-      value: "region_name"
-
+      value: {{ .Values.registry.type }}
+    
+    - name: region                                  
+      value: {{ .Values.registry.region }}
+    
     - name: registry
-      value: "http://chartmuseum.apps.advatys.thadvatys.com"
-
+      value: {{ .Values.registry.url }}
+    
     - name: chartname
       value: "chart_name"
+      
 
   entrypoint: generate-token
   volumeClaimTemplates:
@@ -42,7 +44,7 @@ spec:
   volumes:
   - name: aws-secrets
     secret:
-      secretName: aws-secret
+      secretName: {{ .Values.secrets.aws.name }}
 
   templates:
   - name: generate-token
@@ -52,27 +54,27 @@ spec:
 
     - - name: create-token
         template: gen-token-bash
-        when: "{{ workflow.parameters.registry-type }} == aws"
+        when: "{{ "{{" }} workflow.parameters.registry-type {{ "}}" }} == aws"
 
     - - name: aws-login
         template: login
-        when: "{{ workflow.parameters.registry-type }} == aws"
+        when: "{{ "{{" }} workflow.parameters.registry-type {{ "}}" }} == aws"
         arguments:
           parameters:
           - name: token
-            value: "{{steps.create-token.outputs.result}}"
+            value: "{{ "{{" }}steps.create-token.outputs.result{{ "}}" }}"
 
     - - name: private-registry
         template: private-registry
-        when: "{{ workflow.parameters.registry-type }} == private_registry"
+        when: "{{ "{{" }} workflow.parameters.registry-type {{ "}}" }} == private_registry"
 
     - - name: helm-package
         template: helm-package
-        when: "{{ workflow.parameters.registry-type }} == chartmuseum"
+        when: "{{ "{{" }} workflow.parameters.registry-type {{ "}}" }} == chartmuseum"
         
     - - name: push-to-chartmuseum
         template: push-to-chartmuseum
-        when: "{{ workflow.parameters.registry-type }} == chartmuseum"
+        when: "{{ "{{" }} workflow.parameters.registry-type {{ "}}" }} == chartmuseum"
 
   - name: pull-repo
     script:
@@ -80,15 +82,15 @@ spec:
       imagePullPolicy: IfNotPresent
       command: [sh]
       source: |
-        if [[ {{ workflow.parameters.git-repository-type }} == "private" ]] 
+        if [[ {{ "{{" }} workflow.parameters.git-repository-type {{ "}}" }} == "private" ]] 
         then          
           cd /mnt/vol && git clone https://$git_token:x-oauth-basic@github.com/$git_username/$repo_name.git git-local-dir
         else
-          cd /mnt/vol && git clone {{ workflow.parameters.git-url }} git-local-dir
+          cd /mnt/vol && git clone {{ "{{" }} workflow.parameters.git-url {{ "}}" }} git-local-dir
         fi
-        if [[ {{ workflow.parameters.git-commits }} == "no_commit" ]]
+        if [[ {{ "{{" }} workflow.parameters.git-commits {{ "}}" }} == "no_commit" ]]
         then
-          echo {{ workflow.parameters.git-path }} > git-path.txt
+          echo {{ "{{" }} workflow.parameters.git-path {{ "}}" }} > git-path.txt
         else
           echo -n helm-minio-crd > git-path.txt
         fi
@@ -98,17 +100,17 @@ spec:
       - name: git_username
         valueFrom:
           secretKeyRef:
-            name: git-secret
+            name: {{ .Values.secrets.git.name }}
             key: GIT_USERNAME
       - name: git_token
         valueFrom:
           secretKeyRef:
-            name: git-secret
+            name: {{ .Values.secrets.git.name }}
             key: GIT_TOKEN
       - name: repo_name
         valueFrom:
           secretKeyRef:
-            name: git-secret
+            name: {{ .Values.secrets.git.name }}
             key: REPO_NAME
       volumeMounts:
       - name: workdir
@@ -122,19 +124,19 @@ spec:
       source: |
         export AWS_ACCESS_KEY_ID=$access_key 
         export AWS_SECRET_ACCESS_KEY=$secret_key  
-        export AWS_DEFAULT_REGION={{ workflow.parameters.region }}  
-        /usr/local/bin/aws ecr-public get-login-password --region {{ workflow.parameters.region }}
+        export AWS_DEFAULT_REGION={{ "{{" }} workflow.parameters.region {{ "}}" }}  
+        /usr/local/bin/aws ecr-public get-login-password --region {{ "{{" }} workflow.parameters.region {{ "}}" }}
       
       env:
       - name: access_key
         valueFrom:
           secretKeyRef:
-            name: aws-secret
+            name: {{ .Values.secrets.aws.name }}
             key: AWS_ACCESS
       - name: secret_key
         valueFrom:
           secretKeyRef:
-            name: aws-secret
+            name: {{ .Values.secrets.aws.name }}
             key: AWS_SECRET
 
   - name: login
@@ -147,10 +149,10 @@ spec:
       command: [sh]
       source: |
         export HELM_EXPERIMENTAL_OCI=1
-        echo {{ inputs.parameters.token }} | helm registry login --username AWS --password-stdin {{ workflow.parameters.registry }}
+        echo {{ "{{" }} inputs.parameters.token {{ "}}" }} | helm registry login --username AWS --password-stdin {{ "{{" }} workflow.parameters.registry {{ "}}" }}
         cd /mnt/vol/git-local-dir
-        helm chart save . {{ workflow.parameters.chartname }}
-        helm chart push {{ workflow.parameters.chartname }}
+        helm chart save . {{ "{{" }} workflow.parameters.chartname {{ "}}" }}
+        helm chart push {{ "{{" }} workflow.parameters.chartname {{ "}}" }}
 
       volumeMounts:
       - name: workdir
@@ -163,10 +165,10 @@ spec:
       command: [sh]
       source: |
         export HELM_EXPERIMENTAL_OCI=1 
-        helm registry login {{ workflow.parameters.registry }} --username $registry_username --password $registry_password
+        helm registry login {{ "{{" }} workflow.parameters.registry {{ "}}" }} --username $registry_username --password $registry_password
         cd /mnt/vol/git-local-dir
-        helm chart save . {{ workflow.parameters.chartname }}
-        helm chart push {{ workflow.parameters.chartname }}
+        helm chart save . {{ "{{" }} workflow.parameters.chartname {{ "}}" }}
+        helm chart push {{ "{{" }} workflow.parameters.chartname {{ "}}" }}
 
       env:
       - name: registry_username
@@ -177,7 +179,7 @@ spec:
       - name: registry_password
         valueFrom:
           secretKeyRef:
-            name: aws-secret
+            name: {{ .Values.secrets.aws.name }}
             key: password
       volumeMounts:
       - name: workdir
@@ -205,18 +207,18 @@ spec:
       source: |
         cd /mnt/vol/git-local-dir
         cd $(cat ../git-path.txt)
-        curl --user $registry_username:$registry_password --data-binary "@$(grep -A0 '^name:' ./Chart.yaml | awk '{ print $2}')-$(grep -A0 '^version:' ./Chart.yaml | awk '{ print $2}').tgz" {{ workflow.parameters.registry }}/api/charts
+        curl --user $registry_username:$registry_password --data-binary "@$(grep -A0 '^name:' ./Chart.yaml | awk '{ print $2}')-$(grep -A0 '^version:' ./Chart.yaml | awk '{ print $2}').tgz" {{ "{{" }} workflow.parameters.registry {{ "}}" }}/api/charts
 
       env:
       - name: registry_username
         valueFrom:
           secretKeyRef:
-            name: chartmuseum-secret
+            name: {{ .Values.secrets.chartmuseum.name }}
             key: CHARTMUSEUM_USERNAME
       - name: registry_password
         valueFrom:
           secretKeyRef:
-            name: chartmuseum-secret
+            name: {{ .Values.secrets.chartmuseum.name }}
             key: CHARTMUSEUM_PASSWORD
       volumeMounts:
       - name: workdir
