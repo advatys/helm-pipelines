@@ -48,7 +48,7 @@ spec:
               kind: Workflow
               metadata:
 #                name: github-
-                generateName: github-     
+                generateName: helm-pipeline-     
               spec:
                 entrypoint: call-push-to-registry-template
                 
