@@ -118,7 +118,7 @@ spec:
               dest: spec.arguments.parameters.1.value
             - src:
                 dependencyName: github-push-event
-                dataTemplate: '{{ "{{" }} .Input.body.commits | first {{ "}}" }}' 
+                dataTemplate: '{{ "{{" }} .Input.body.commits.0.modified | append .Input.body.commits.0.added | append .Input.body.commits.0.removed {{ "}}" }}' 
               dest: spec.arguments.parameters.2.value
             # Append pull request number and short sha to dynamically assign worklfow name <github-21500-2c065a>
  #           - src:
