@@ -97,7 +97,7 @@ spec:
             echo -n . > git-path.txt
           else
             echo -n helm-minio-crd > git-path.txt
-            echo  {{ "{{" }} workflow.parameters.git-commits {{ "}}" }}
+            echo  {{ "{{" }} "workflow.parameters.git-commits" {{ "}}" }}
           fi
         fi
 
