@@ -118,7 +118,7 @@ spec:
               dest: spec.arguments.parameters.1.value
             - src:
                 dependencyName: github-push-event
-                dataTemplate: '{{ "{{" }} pick (.Input.body.commits | first) "modified" "added" "removed" | toJson {{ "}}" }}' 
+                dataTemplate: '{{ "{{" }} values (pick (.Input.body.commits | first) "modified" "added" "removed") | replace "[" "" | replace "]" "" | quote {{ "}}" }}' 
                 #dataTemplate: '{{ "{{" }} concat (values (pick (.Input.body.commits | first) "modified")) (values (pick (.Input.body.commits | first) "added")) (values (pick (.Input.body.commits | first) "removed")) | uniq {{ "}}" }}' 
                 #dataTemplate: '{{ "{{" }} concat (pluck "modified" .Input.body.commits) (pluck "added" .Input.body.commits) (pluck "removed" .Input.body.commits) | uniq {{ "}}" }}' 
               dest: spec.arguments.parameters.2.value
