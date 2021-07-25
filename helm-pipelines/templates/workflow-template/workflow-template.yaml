@@ -92,7 +92,7 @@ spec:
         then
           echo {{ "{{" }} workflow.parameters.git-path {{ "}}" }} > git-path.txt
         else
-          modified="("{{ "{{" }} workflow.parameters.git-commits {{ "}}" }}")"
+          declare -a modified="("{{ "{{" }} workflow.parameters.git-commits {{ "}}" }}")"
           echo "${modified[@]}"
           printf '%s\n' "$(dirname "${modified[@]}")" | sort -u | cut -d "/" -f2 > git-path.txt
         fi
@@ -193,7 +193,8 @@ spec:
       imagePullPolicy: IfNotPresent
       command: [sh]
       source: |
-        cd /mnt/vol/git-local-dir      
+        cd /mnt/vol/git-local-dir
+        cat ../git-path.txt
         for line in $(cat ../git-path.txt); do 
           if [[ -s "$line"/Chart.yaml ]]; then
             cd "$line"
