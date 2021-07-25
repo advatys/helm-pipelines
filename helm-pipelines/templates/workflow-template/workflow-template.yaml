@@ -7,6 +7,7 @@ spec:
     parameters:
     
     - name: git-repository
+      value: "used_by_webhook" # the "secret" method is still used when manually launching the workflow  
     
     - name: git-commits
       value: "no_commit"
