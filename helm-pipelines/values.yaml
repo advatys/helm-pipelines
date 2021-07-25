@@ -5,6 +5,7 @@ github:
     names:
     - advatys
     - helm-pipelines
+    branch: HEAD
     path:
       # the path shall be automatically determined using github webhook's data. 
       # still a default path can be usefull when launching helm pipeline's workflow manually

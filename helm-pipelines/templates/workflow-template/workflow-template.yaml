@@ -13,7 +13,7 @@ spec:
       value: "no_commit"
       
     - name: git-branch
-      value: "HEAD"
+      value: {{ .Values.github.repository.branch }}
     
     - name: git-repository-type
       value: {{ .Values.github.repository.type }}

@@ -71,8 +71,10 @@ spec:
                     - name: git-owner
                     - name: git-repository
                     - name: git-commits
-                    - name: git-branch
                     
+                    - name: git-branch
+                      value: {{ .Values.github.repository.branch }}  
+                      
                     - name: git-repository-type
                       value: {{ .Values.github.repository.type }}
                       
