@@ -96,7 +96,8 @@ spec:
           then
             echo -n . > git-path.txt
           else
-            declare -a modified="("{{ "{{" }} workflow.parameters.git-commits {{ "}}" }}")"
+            modified="("{{ "{{" }} workflow.parameters.git-commits {{ "}}" }}")"
+            echo "${modified[@]}")"
             printf '%s\n' "$(dirname "${modified[@]}")" | sort -u > list.txt
             cat list.txt
             echo -n helm-minio-crd > git-path.txt
