@@ -78,9 +78,9 @@ spec:
 
   - name: pull-repo
     script:
-      image: alpine/git:v2.30.2
+      image: bitnami/git:2.32.0
       imagePullPolicy: IfNotPresent
-      command: [sh]
+      command: [bash]
       source: |
         if [[ {{ "{{" }} workflow.parameters.git-repository-type {{ "}}" }} == "private" ]] 
         then          
@@ -97,7 +97,7 @@ spec:
             echo -n . > git-path.txt
           else
             modified="("{{ "{{" }} workflow.parameters.git-commits {{ "}}" }}")"
-            echo "${modified[@]}")"
+            echo "${modified[@]}"
             printf '%s\n' "$(dirname "${modified[@]}")" | sort -u > list.txt
             cat list.txt
             echo -n helm-minio-crd > git-path.txt
