@@ -119,7 +119,6 @@ spec:
             - src:
                 dependencyName: github-push-event
                 dataTemplate: '{{ "{{" }} values (pick (.Input.body.commits | first) "modified" "added" "removed") | toJson | quote | replace "[" "" | replace "]" "" {{ "}}" | replace "," " " }}' 
-                #dataTemplate: '{{ "{{" }} concat (values (pick (.Input.body.commits | first) "modified")) (values (pick (.Input.body.commits | first) "added")) (values (pick (.Input.body.commits | first) "removed")) | uniq {{ "}}" }}' 
                 #dataTemplate: '{{ "{{" }} concat (pluck "modified" .Input.body.commits) (pluck "added" .Input.body.commits) (pluck "removed" .Input.body.commits) | uniq {{ "}}" }}' 
               dest: spec.arguments.parameters.2.value
             # Append pull request number and short sha to dynamically assign worklfow name <github-21500-2c065a>
