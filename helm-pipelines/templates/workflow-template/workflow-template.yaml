@@ -11,6 +11,9 @@ spec:
     
     - name: git-commits
       value: "no_commit"
+      
+    - name: git-branch
+      value: "HEAD"
     
     - name: git-repository-type
       value: {{ .Values.github.repository.type }}
@@ -89,9 +92,9 @@ spec:
         then
           if [[ {{ "{{" }} workflow.parameters.git-commits {{ "}}" }} == "no_commit" ]]
           then
-            cd /mnt/vol && git clone https://$git_token:x-oauth-basic@github.com/$git_username/$repo_name.git git-local-dir
+            cd /mnt/vol && git clone --branch {{ "{{" }} workflow.parameters.git-branch {{ "}}" }}  https://$git_token:x-oauth-basic@github.com/$git_username/$repo_name.git git-local-dir
           else
-            cd /mnt/vol && git clone https://$git_token:x-oauth-basic@github.com/$git_username/{{ "{{" }} workflow.parameters.git-repository {{ "}}" }}.git git-local-dir
+            cd /mnt/vol && git clone --branch {{ "{{" }} workflow.parameters.git-branch {{ "}}" }} https://$git_token:x-oauth-basic@github.com/$git_username/{{ "{{" }} workflow.parameters.git-repository {{ "}}" }}.git git-local-dir
           fi
         else
           cd /mnt/vol && git clone {{ "{{" }} workflow.parameters.git-url {{ "}}" }} git-local-dir

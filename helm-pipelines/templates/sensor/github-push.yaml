@@ -71,6 +71,7 @@ spec:
                     - name: git-owner
                     - name: git-repository
                     - name: git-commits
+                    - name: git-branch
                     
                     - name: git-repository-type
                       value: {{ .Values.github.repository.type }}
@@ -121,6 +122,10 @@ spec:
                 dataTemplate: '{{ "{{" }} values (pick (.Input.body.commits | first) "modified" "added" "removed") | toJson | quote | replace "[" "" | replace "]" "" | replace "," " " {{ "}}" }}' 
                 #dataTemplate: '{{ "{{" }} concat (pluck "modified" .Input.body.commits) (pluck "added" .Input.body.commits) (pluck "removed" .Input.body.commits) | uniq {{ "}}" }}' 
               dest: spec.arguments.parameters.2.value
+#            - src:
+#                dependencyName: github-push-event
+#                dataKey: body.ref
+#              dest: spec.arguments.parameters.3.value
             # Append pull request number and short sha to dynamically assign worklfow name <github-21500-2c065a>
  #           - src:
  #               dependencyName: github-push-event
