@@ -94,7 +94,7 @@ spec:
         else
           declare -a modified="("{{ "{{" }} workflow.parameters.git-commits {{ "}}" }}")"
           echo "${modified[@]}"
-          printf '%s\n' "$(dirname "${modified[@]}")" | sort -u | cut -d "/" -f1 > git-path.txt
+          printf '%s\n' "$(dirname "${modified[@]}")" | sort -u | cut -d "/" -f1 | uniq > git-path.txt
         fi
 
 
