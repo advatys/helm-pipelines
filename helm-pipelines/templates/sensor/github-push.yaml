@@ -30,10 +30,9 @@ spec:
 #            value:
 #              - open
           - path: body.ref
-            template: "{{ .Input | quote | base }}"
             type: string
             value:
-              - {{ .Values.github.repository.branch | quote }}
+              - refs/heads/{{ .Values.github.repository.branch | quote }}
 
 
   triggers:
