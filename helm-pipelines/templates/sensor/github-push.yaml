@@ -32,7 +32,7 @@ spec:
           - path: body.ref
             type: string
             value:
-              - refs/heads/{{ .Values.github.repository.branch | quote }}
+              - refs/heads/{{ .Values.github.repository.branch }}
 
 
   triggers:
