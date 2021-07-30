@@ -2,8 +2,7 @@ github:
   repository:
     type: private # Can be private or public accordingly, private creds to be stored in a secret
     owner: owner_of_repo
-    names:
-    - name_of_repo
+    name: name_of_repo
     path: path_to_helm_chart
 
   webhook:
@@ -25,7 +24,10 @@ secrets:
   chartmuseum:
     generate: "true"
     name: chartmuseum-secret
-
+  oci:
+    generate: "true" # when set to true, generate a secret with required keys.
+    name: oci-secret
+    
 eventbus:
   enabled: "true"
   replicas: 3

@@ -6,14 +6,11 @@ spec:
   arguments:
     parameters:
     
-    - name: git-repository
-      value: "used_by_webhook" # the "secret" method is still used when manually launching the workflow  
-    
-    - name: git-commits
-      value: "no_commit"
+    - name: git-owner
+      value: {{ .Values.github.repository.owner }}
       
-    - name: git-branch
-      value: {{ .Values.github.repository.branch }}
+    - name: git-repository
+      value: {{ .Values.github.repository.name }} 
     
     - name: git-repository-type
       value: {{ .Values.github.repository.type }}
@@ -22,7 +19,7 @@ spec:
       value: "git_url"
     
     - name: git-path
-      value: {{ .Values.github.repository.path.default }}
+      value: {{ .Values.github.repository.path }}
     
     - name: registry-type
       value: {{ .Values.registry.type }}
@@ -70,41 +67,18 @@ spec:
       source: |
         if [[ {{ "{{" }} workflow.parameters.git-repository-type {{ "}}" }} == "private" ]]
         then
-          if [[ {{ "{{" }} workflow.parameters.git-commits {{ "}}" }} == "no_commit" ]]
-          then
-            cd /mnt/vol && git clone --branch {{ "{{" }} workflow.parameters.git-branch {{ "}}" }}  https://$git_token:x-oauth-basic@github.com/$git_username/$repo_name.git git-local-dir
-          else
-            cd /mnt/vol && git clone --branch {{ "{{" }} workflow.parameters.git-branch {{ "}}" }} https://$git_token:x-oauth-basic@github.com/$git_username/{{ "{{" }} workflow.parameters.git-repository {{ "}}" }}.git git-local-dir
-          fi
+          cd /mnt/vol && git clone --branch {{ "{{" }} workflow.parameters.git-branch {{ "}}" }} https://$git_token:x-oauth-basic@github.com/{{ "{{" }} workflow.parameters.git-owner {{ "}}" }}/{{ "{{" }} workflow.parameters.git-repository {{ "}}" }}.git git-local-dir
         else
-          cd /mnt/vol && git clone {{ "{{" }} workflow.parameters.git-url {{ "}}" }} git-local-dir
+          cd /mnt/vol && git clone --branch {{ "{{" }} workflow.parameters.git-branch {{ "}}" }} https://github.com/{{ "{{" }} workflow.parameters.git-owner {{ "}}" }}/{{ "{{" }} workflow.parameters.git-repository {{ "}}" }}.git git-local-dir
         fi
-        if [[ {{ "{{" }} workflow.parameters.git-commits {{ "}}" }} == "no_commit" ]]
-        then
-          echo {{ "{{" }} workflow.parameters.git-path {{ "}}" }} > git-path.txt
-        else
-          declare -a modified="("{{ "{{" }} workflow.parameters.git-commits {{ "}}" }}")"
-          echo "${modified[@]}"
-          printf '%s\n' "$(dirname "${modified[@]}")" | sort -u | cut -d "/" -f1 | uniq > git-path.txt
-        fi
-
+        echo {{ "{{" }} workflow.parameters.git-path {{ "}}" }} > git-path.txt
 
       env:
-      - name: git_username
-        valueFrom:
-          secretKeyRef:
-            name: {{ .Values.secrets.git.name }}
-            key: GIT_USERNAME
       - name: git_token
         valueFrom:
           secretKeyRef:
             name: {{ .Values.secrets.git.name }}
             key: GIT_TOKEN
-      - name: repo_name
-        valueFrom:
-          secretKeyRef:
-            name: {{ .Values.secrets.git.name }}
-            key: REPO_NAME
       volumeMounts:
       - name: workdir
         mountPath: /mnt/vol
@@ -119,20 +93,20 @@ spec:
         export HELM_EXPERIMENTAL_OCI=1 
         helm registry login {{ "{{" }} workflow.parameters.registry {{ "}}" }} --username $registry_username --password $registry_password
         cd /mnt/vol/git-local-dir
-        helm chart save . {{ "{{" }} workflow.parameters.chartname {{ "}}" }}
-        helm chart push {{ "{{" }} workflow.parameters.chartname {{ "}}" }}
+#        helm chart save . {{ "{{" }} workflow.parameters.chartname {{ "}}" }}
+#        helm chart push {{ "{{" }} workflow.parameters.chartname {{ "}}" }}
 
       env:
       - name: registry_username
         valueFrom:
           secretKeyRef:
-            name: password
-            key: USERNAME
+            name: {{ .Values.secrets.oci.name }}
+            key: OCI_USERNAME
       - name: registry_password
         valueFrom:
           secretKeyRef:
-            name: {{ .Values.secrets.aws.name }}
-            key: password
+            name: {{ .Values.secrets.oci.name }}
+            key: OCI_PASSWORD
       volumeMounts:
       - name: workdir
         mountPath: /mnt/vol

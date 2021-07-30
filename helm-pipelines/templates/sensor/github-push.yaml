@@ -55,7 +55,12 @@ spec:
                 arguments:
                   parameters:
                     - name: git-owner
+                      value: {{ .Values.github.repository.owner }}
+                      
                     - name: git-repository
+                      value: {{ .Values.github.repository.name }}
+                      
+                    - name: git-branch
                       
                     - name: git-repository-type
                       value: {{ .Values.github.repository.type }}
@@ -92,10 +97,10 @@ spec:
                 dependencyName: github-push-event
                 dataKey: body.repository.name
               dest: spec.arguments.parameters.1.value
-#            - src:
-#                dependencyName: github-push-event
-#                dataTemplate: '{{ "{{" }} values (pick (.Input.body.commits | first) "modified" "added" "removed") | toJson | quote | replace "[" "" | replace "]" "" | replace "," " " {{ "}}" }}' 
-#              dest: spec.arguments.parameters.2.value
+            - src:
+                dependencyName: github-push-event
+                dataTemplate: '{{ "{{" }} .Input.body.ref {{ "}}" }}' 
+              dest: spec.arguments.parameters.2.value
 
             # Append pull request number and short sha to dynamically assign worklfow name <github-21500-2c065a>
             - src:

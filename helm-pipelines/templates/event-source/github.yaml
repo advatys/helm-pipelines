@@ -13,8 +13,8 @@ spec:
     push:
       repositories:
         - owner: {{ .Values.github.repository.owner }}
-          names:          
-{{ toYaml .Values.github.repository.names | indent 10 }}
+          names: 
+          - {{ .Values.github.repository.name }}
       # Github will send events to following port and endpoint
       webhook:
         # endpoint to listen to events on
