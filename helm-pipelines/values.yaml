@@ -1,15 +1,11 @@
 github:
   repository:
     type: private # Can be private or public accordingly, private creds to be stored in a secret
-    owner: itmwiw
+    owner: owner_of_repo
     names:
-    - advatys
-    - helm-pipelines
-    branch: main
-    path:
-      # the path shall be automatically determined using github webhook's data. 
-      # still a default path can be usefull when launching helm pipeline's workflow manually
-      default: default_path
+    - name_of_repo
+    path: path_to_helm_chart
+
   webhook:
     # url the event-source will use to register at Github.
     # This url must be reachable from outside the cluster.
@@ -19,7 +15,6 @@ github:
 registry:
   type: chartmuseum # Can be "aws", "private_registry" or "chartmuseum"
   url: http://chartmuseum.apps.advatys.thadvatys.com
-  region: region_name # Set when registry type is aws 
     
 secrets:
   # when generate is set to true, this will generate a secret with required keys.
@@ -27,9 +22,6 @@ secrets:
   git:
     generate: "true" # when set to true, generate a secret with required keys.
     name: git-secret
-  aws:
-    generate: "true"
-    name: aws-secret
   chartmuseum:
     generate: "true"
     name: chartmuseum-secret

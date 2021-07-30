@@ -12,27 +12,16 @@ spec:
       eventName: push
       filters:
         data:
-#          # Name of the event that triggered the delivery: [pull_request, push, yadayadayada]
-#          # https://docs.github.com/en/developers/webhooks-and-events/webhook-events-and-payloads
-#          - path: body.X-GitHub-Event
-#            type: string
-#            value:
-#              - pull_request
-#          - path: body.action
-#            type: string
-#            value:
-#              - opened
-#              - edited
-#              - reopened
-#              - synchronize
-#          - path: body.pull_request.state
-#            type: string
-#            value:
-#              - open
-          - path: body.ref
+          # Name of the event that triggered the delivery: [pull_request, push, yadayadayada]
+          # https://docs.github.com/en/developers/webhooks-and-events/webhook-events-and-payloads
+          - path: body.X-GitHub-Event
             type: string
             value:
-              - refs/heads/{{ .Values.github.repository.branch }}
+              - push
+#          - path: body.ref
+#            type: string
+#            value:
+#              - refs/heads/{{ .Values.github.repository.branch }}
 
 
   triggers:
@@ -48,8 +37,8 @@ spec:
               apiVersion: argoproj.io/v1alpha1
               kind: Workflow
               metadata:
-#                name: github-
-                generateName: helm-pipeline-     
+                name: {{ .Release.Name }}-push-
+                namespace: {{ .Release.Name }}-push-
               spec:
                 entrypoint: call-push-to-registry-template
                 
@@ -67,19 +56,12 @@ spec:
                   parameters:
                     - name: git-owner
                     - name: git-repository
-                    - name: git-commits
-                    
-                    - name: git-branch
-                      value: {{ .Values.github.repository.branch }}  
                       
                     - name: git-repository-type
                       value: {{ .Values.github.repository.type }}
-                      
-                    - name: git-url
-                      value: "git_url"
                     
                     - name: git-path
-                      value: {{ .Values.github.repository.path.default }}
+                      value: {{ .Values.github.repository.path }}
                     
                     - name: registry-type
                       value: {{ .Values.registry.type }}
@@ -98,10 +80,7 @@ spec:
                           templateRef:
                             name: {{ .Release.Name }}-push-to-registry-template
                             template: helm-pipeline
-#                          arguments:
-#                            parameters:
-#                            - name: message
-#                              value: "hello world"
+
 
 
           parameters:
@@ -113,20 +92,21 @@ spec:
                 dependencyName: github-push-event
                 dataKey: body.repository.name
               dest: spec.arguments.parameters.1.value
-            - src:
-                dependencyName: github-push-event
-                dataTemplate: '{{ "{{" }} values (pick (.Input.body.commits | first) "modified" "added" "removed") | toJson | quote | replace "[" "" | replace "]" "" | replace "," " " {{ "}}" }}' 
-                #dataTemplate: '{{ "{{" }} concat (pluck "modified" .Input.body.commits) (pluck "added" .Input.body.commits) (pluck "removed" .Input.body.commits) | uniq {{ "}}" }}' 
-              dest: spec.arguments.parameters.2.value
 #            - src:
 #                dependencyName: github-push-event
-#                dataKey: body.ref
-#              dest: spec.arguments.parameters.3.value
+#                dataTemplate: '{{ "{{" }} values (pick (.Input.body.commits | first) "modified" "added" "removed") | toJson | quote | replace "[" "" | replace "]" "" | replace "," " " {{ "}}" }}' 
+#              dest: spec.arguments.parameters.2.value
+
             # Append pull request number and short sha to dynamically assign worklfow name <github-21500-2c065a>
- #           - src:
- #               dependencyName: github-push-event
- #               dataTemplate: "{{ "{{" }} .Input.body.pull_request.number {{ "}}" }}-{{ "{{" }} .Input.body.pull_request.head.sha | substr 0 7 {{ "}}" }}"
- #             dest: metadata.name
- #             operation: append
+            - src:
+                dependencyName: github-push-event
+                dataTemplate: "{{ "{{" }} .Input.body.before {{ "}}" }}-{{ "{{" }} .Input.body.after {{ "}}" }}"
+              dest: metadata.name
+              operation: append
+            - src:
+                dependencyName: github-push-event
+                dataTemplate: "{{ "{{" }} .Input.body.before {{ "}}" }}-{{ "{{" }} .Input.body.after {{ "}}" }}"
+              dest: metadata.namespace
+              operation: append
 #      retryStrategy:
 #        steps: 3

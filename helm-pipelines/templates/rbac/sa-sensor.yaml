@@ -5,11 +5,11 @@ kind: ServiceAccount
 metadata:
   name: {{ .Release.Name }}-operate-workflow-sa
 ---
-# Similarly you can use a ClusterRole and ClusterRoleBinding
+# Similarly you can use a Role and RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
+kind: ClusterRole
 metadata:
-  name: {{ .Release.Name }}-operate-workflow-role
+  name: {{ .Release.Name }}-operate-workflow-cluster-role
 rules:
   - apiGroups:
       - argoproj.io
@@ -22,13 +22,13 @@ rules:
       - clusterworkflowtemplates
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
+kind: ClusterRoleBinding
 metadata:
-  name: {{ .Release.Name }}-operate-workflow-role-binding
+  name: {{ .Release.Name }}-operate-workflow-cluster-role-binding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: {{ .Release.Name }}-operate-workflow-role
+  kind: ClusterRole
+  name: {{ .Release.Name }}-operate-workflow-cluster-role
 subjects:
   - kind: ServiceAccount
     name: {{ .Release.Name }}-operate-workflow-sa
