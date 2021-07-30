@@ -26,6 +26,27 @@ spec:
 
   triggers:
     - template:
+        name: create-namespace-trigger
+        k8s:
+          group: ""
+          version: v1
+          resource: namespaces
+          operation: create
+          source:
+            resource:
+              apiVersion: v1
+              kind: Namespace
+              metadata:
+                name: {{ .Release.Name }}-push-
+                
+          parameters:
+            - src:
+                dependencyName: github-push-event
+                dataTemplate: "{{ "{{" }} .Input.body.before {{ "}}" }}-{{ "{{" }} .Input.body.after {{ "}}" }}"
+              dest: metadata.name
+              operation: append
+                
+    - template:
         name: github-workflow-trigger
         k8s:
           group: argoproj.io
@@ -85,8 +106,6 @@ spec:
                           templateRef:
                             name: {{ .Release.Name }}-push-to-registry-template
                             template: helm-pipeline
-
-
 
           parameters:
             - src:
