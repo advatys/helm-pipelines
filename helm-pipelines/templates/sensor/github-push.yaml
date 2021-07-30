@@ -42,7 +42,7 @@ spec:
           parameters:
             - src:
                 dependencyName: github-push-event
-                dataTemplate: {{ "{{" }} .Input.body.after {{ "}}" }}"
+                dataTemplate: "{{ "{{" }} .Input.body.after {{ "}}" }}"
               dest: metadata.name
               operation: append
                 
@@ -124,12 +124,12 @@ spec:
             # Append pull request number and short sha to dynamically assign worklfow name <github-21500-2c065a>
             - src:
                 dependencyName: github-push-event
-                dataTemplate: {{ "{{" }} .Input.body.after {{ "}}" }}"
+                dataTemplate: "{{ "{{" }} .Input.body.after {{ "}}" }}"
               dest: metadata.name
               operation: append
             - src:
                 dependencyName: github-push-event
-                dataTemplate: {{ "{{" }} .Input.body.after {{ "}}" }}"
+                dataTemplate: "{{ "{{" }} .Input.body.after {{ "}}" }}"
               dest: metadata.namespace
               operation: append
 #      retryStrategy:
