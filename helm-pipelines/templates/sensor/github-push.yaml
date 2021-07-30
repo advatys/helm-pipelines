@@ -62,10 +62,6 @@ spec:
                       requests:
                         storage: 1Gi
                 
-                volumes:
-                - name: aws-secrets
-                  secret:
-                    secretName: {{ .Values.secrets.aws.name }}
                       
                 arguments:
                   parameters:
@@ -88,9 +84,6 @@ spec:
                     - name: registry-type
                       value: {{ .Values.registry.type }}
                     
-                    - name: region                                  
-                      value: {{ .Values.registry.region }}
-                    
                     - name: registry
                       value: {{ .Values.registry.url }}
                     
@@ -104,7 +97,7 @@ spec:
                         - name: call-push-to-registry-template
                           templateRef:
                             name: {{ .Release.Name }}-push-to-registry-template
-                            template: generate-token
+                            template: helm-pipeline
 #                          arguments:
 #                            parameters:
 #                            - name: message

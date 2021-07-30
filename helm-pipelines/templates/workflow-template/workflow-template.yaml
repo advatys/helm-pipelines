@@ -27,9 +27,6 @@ spec:
     - name: registry-type
       value: {{ .Values.registry.type }}
     
-    - name: region                                  
-      value: {{ .Values.registry.region }}
-    
     - name: registry
       value: {{ .Values.registry.url }}
     
@@ -46,33 +43,16 @@ spec:
       resources:
         requests:
           storage: 1Gi
-  
-  volumes:
-  - name: aws-secrets
-    secret:
-      secretName: {{ .Values.secrets.aws.name }}
 
   templates:
-  - name: generate-token
+  - name: helm-pipeline
     steps:
     - - name: pull-repo
         template: pull-repo
 
-    - - name: create-token
-        template: gen-token-bash
-        when: "{{ "{{" }} workflow.parameters.registry-type {{ "}}" }} == aws"
-
-    - - name: aws-login
-        template: login
-        when: "{{ "{{" }} workflow.parameters.registry-type {{ "}}" }} == aws"
-        arguments:
-          parameters:
-          - name: token
-            value: "{{ "{{" }}steps.create-token.outputs.result{{ "}}" }}"
-
-    - - name: private-registry
-        template: private-registry
-        when: "{{ "{{" }} workflow.parameters.registry-type {{ "}}" }} == private_registry"
+    - - name: oci-registry
+        template: oci-registry
+        when: "{{ "{{" }} workflow.parameters.registry-type {{ "}}" }} == oci_registry"
 
     - - name: helm-package
         template: helm-package
@@ -129,49 +109,8 @@ spec:
       - name: workdir
         mountPath: /mnt/vol
 
-  - name: gen-token-bash
-    script:
-      image: amazon/aws-cli:2.2.4
-      imagePullPolicy: IfNotPresent
-      command: [bash]
-      source: |
-        export AWS_ACCESS_KEY_ID=$access_key 
-        export AWS_SECRET_ACCESS_KEY=$secret_key  
-        export AWS_DEFAULT_REGION={{ "{{" }} workflow.parameters.region {{ "}}" }}  
-        /usr/local/bin/aws ecr-public get-login-password --region {{ "{{" }} workflow.parameters.region {{ "}}" }}
-      
-      env:
-      - name: access_key
-        valueFrom:
-          secretKeyRef:
-            name: {{ .Values.secrets.aws.name }}
-            key: AWS_ACCESS
-      - name: secret_key
-        valueFrom:
-          secretKeyRef:
-            name: {{ .Values.secrets.aws.name }}
-            key: AWS_SECRET
 
-  - name: login
-    inputs:
-      parameters:
-      - name: token
-    script:
-      image: alpine/helm:3.5.4
-      imagePullPolicy: IfNotPresent
-      command: [sh]
-      source: |
-        export HELM_EXPERIMENTAL_OCI=1
-        echo {{ "{{" }} inputs.parameters.token {{ "}}" }} | helm registry login --username AWS --password-stdin {{ "{{" }} workflow.parameters.registry {{ "}}" }}
-        cd /mnt/vol/git-local-dir
-        helm chart save . {{ "{{" }} workflow.parameters.chartname {{ "}}" }}
-        helm chart push {{ "{{" }} workflow.parameters.chartname {{ "}}" }}
-
-      volumeMounts:
-      - name: workdir
-        mountPath: /mnt/vol
-
-  - name: private-registry
+  - name: oci-registry
     script:
       image: alpine/helm:3.5.4
       imagePullPolicy: IfNotPresent
