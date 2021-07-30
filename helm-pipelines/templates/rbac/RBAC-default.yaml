@@ -35,4 +35,5 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: default
+    namepsace: {{ .Release.Namespace }}
  {{- end }}

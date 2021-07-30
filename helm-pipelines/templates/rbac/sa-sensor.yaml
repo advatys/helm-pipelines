@@ -32,4 +32,5 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: {{ .Release.Name }}-operate-workflow-sa
+    namepsace: {{ .Release.Namespace }}
  {{- end }}
