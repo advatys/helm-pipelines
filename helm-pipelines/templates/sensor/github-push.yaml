@@ -26,135 +26,141 @@ spec:
 
   triggers:
     - template:
-        name: create-namespace-trigger
+        name: main
         k8s:
           group: argoproj.io
           version: v1alpha1
           resource: workflows
           source:
             resource:
+
               apiVersion: argoproj.io/v1alpha1
               kind: Workflow
               metadata:
-                name: create-ns-
-                namespace: helm-pipelines
+                generateName: workflow-of-workflows-
               spec:
+                serviceAccountName: helm-pipeline-operate-workflow-sa
+                entrypoint: main
+                
                 arguments:
                   parameters:
+                    - name: git-branch
+                      value: "git_branch"
                     - name: ns-name
-                entrypoint: generate-namespace
-                podGC:
-                  strategy: OnPodSuccess
-                serviceAccountName: helm-pipeline-operate-workflow-sa
+                      value: "ns_name"
+                    
                 templates:
-                  - name: generate-namespace
+                  - name: main
+                    steps:
+                      - - name: create-namespace
+                          template: create-namespace
+
+                      - - name: launch-helm-pipeline
+                          template: launch-helm-pipeline
+              
+                  - name: create-namespace
                     resource:
                       action: create
                       manifest: |
-                        apiVersion: v1
-                        kind: Namespace
-                        metadata: 
+                        apiVersion: argoproj.io/v1alpha1
+                        kind: Workflow
+                        metadata:
+                          name: create-ns-{{ "{{" }} workflow.parameters.ns-name {{ "}}" }}
+                          namespace: {{ .Release.Namespace }}
+                        spec:
+                          arguments:
+                            parameters:
+                              - name: ns-name
+                                value: "ns_name"
+                          entrypoint: generate-namespace
+                          podGC:
+                            strategy: OnPodSuccess
+                          serviceAccountName: helm-pipeline-operate-workflow-sa
+                          templates:
+                            - name: generate-namespace
+                              resource:
+                                action: create
+                                manifest: |
+                                  apiVersion: v1
+                                  kind: Namespace
+                                  metadata: 
+                                    name: {{ .Release.Name }}-push-{{ "{{" }} workflow.parameters.ns-name {{ "}}" }}
+                                    labels:
+                                      app: helm-pipelines
+                                successCondition: status.phase = Active
+                                failureCondition: status.phase in (Failed, Error)
+                          
+                      
+                  - name: launch-helm-pipeline
+                    resource:
+                      action: create
+                      manifest: |
+                        apiVersion: argoproj.io/v1alpha1
+                        kind: Workflow
+                        metadata:
                           name: {{ .Release.Name }}-push-{{ "{{" }} workflow.parameters.ns-name {{ "}}" }}
-                      successCondition: status.phase = Active
-          operation: create
-          parameters:
-            - src:
-                dependencyName: github-push-event
-                dataKey: body.after
-              dest: spec.arguments.parameters.0.value
-            - src:
-                dependencyName: github-push-event
-                dataTemplate: "{{ "{{" }} .Input.body.after {{ "}}" }}"
-              dest: metadata.name
-              operation: append
-              
-                
-    - template:
-        name: github-workflow-trigger
-        k8s:
-          group: argoproj.io
-          version: v1alpha1
-          resource: workflows
-          operation: create
-          source:
-            resource:
-              apiVersion: argoproj.io/v1alpha1
-              kind: Workflow
-              metadata:
-                name: {{ .Release.Name }}-push-
-                namespace: {{ .Release.Name }}-push-
-              spec:
-                entrypoint: call-push-to-registry-template
-                
-                volumeClaimTemplates:
-                - metadata:
-                    name: workdir
-                  spec:
-                    accessModes: [ "ReadWriteOnce" ]
-                    resources:
-                      requests:
-                        storage: 1Gi
-                
-                      
-                arguments:
-                  parameters:
-                    - name: git-owner
-                      value: {{ .Values.github.repository.owner }}
-                      
-                    - name: git-repository
-                      value: {{ .Values.github.repository.name }}
-                      
-                    - name: git-branch
-                      
-                    - name: git-repository-type
-                      value: {{ .Values.github.repository.type }}
-                    
-                    - name: git-path
-                      value: {{ .Values.github.repository.path }}
-                    
-                    - name: registry-type
-                      value: {{ .Values.registry.type }}
-                    
-                    - name: registry
-                      value: {{ .Values.registry.url }}
-                    
-                    - name: chartname
-                      value: "chart_name"
-                      
-                templates:
-                  - name: call-push-to-registry-template
-                    dag:
-                      tasks:
-                        - name: call-push-to-registry-template
-                          templateRef:
-                            name: {{ .Release.Name }}-push-to-registry-template
-                            template: helm-pipeline
+                          namespace: {{ .Release.Name }}-push-{{ "{{" }} workflow.parameters.ns-name {{ "}}" }}
+                        spec:
+                          entrypoint: call-push-to-registry-template
+                          
+                          volumeClaimTemplates:
+                          - metadata:
+                              name: workdir
+                            spec:
+                              accessModes: [ "ReadWriteOnce" ]
+                              resources:
+                                requests:
+                                  storage: 1Gi
+                          
+                          arguments:
+                            parameters:
+                              - name: git-owner
+                                value: {{ .Values.github.repository.owner }} 
+                                
+                              - name: git-repository
+                                value: {{ .Values.github.repository.name }}
+                                
+                              - name: git-branch
+                                value: "git_branch"
+                              
+                              - name: ns-name
+                                value: "ns_name"
+                                
+                              - name: git-repository-type
+                                value: {{ .Values.github.repository.type }}
+                              
+                              - name: git-path
+                                value: {{ .Values.github.repository.path }}
+                              
+                              - name: registry-type
+                                value: {{ .Values.registry.type }}
+                              
+                              - name: registry
+                                value: {{ .Values.registry.url }}
+                              
+                              - name: chartname
+                                value: "chart_name"
+                                
+                          templates:
+                            - name: call-push-to-registry-template
+                              dag:
+                                tasks:
+                                  - name: call-push-to-registry-template
+                                    templateRef:
+                                      name: {{ .Release.Name }}-push-to-registry-template
+                                      template: helm-pipeline
+                            
+                      successCondition: status.phase == Succeeded
+                      failureCondition: status.phase in (Failed, Error)
 
+          
           parameters:
-            - src:
-                dependencyName: github-push-event
-                dataKey: body.repository.owner.name
-              dest: spec.arguments.parameters.0.value
-            - src:
-                dependencyName: github-push-event
-                dataKey: body.repository.name
-              dest: spec.arguments.parameters.1.value
             - src:
                 dependencyName: github-push-event
                 dataTemplate: '{{ "{{" }} .Input.body.ref {{ "}}" }}' 
-              dest: spec.arguments.parameters.2.value
-
-            # Append pull request number and short sha to dynamically assign worklfow name <github-21500-2c065a>
+              dest: spec.arguments.parameters.0.value
             - src:
                 dependencyName: github-push-event
-                dataTemplate: "{{ "{{" }} .Input.body.after {{ "}}" }}"
-              dest: metadata.name
-              operation: append
-            - src:
-                dependencyName: github-push-event
-                dataTemplate: "{{ "{{" }} .Input.body.after {{ "}}" }}"
-              dest: metadata.namespace
-              operation: append
-      retryStrategy:
-        steps: 3
-        duration: 60s
+                dataKey: body.after
+              dest: spec.arguments.parameters.1.value
+              
