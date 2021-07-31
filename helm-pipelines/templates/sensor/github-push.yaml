@@ -64,7 +64,7 @@ spec:
               dest: spec.arguments.parameters.0.value
             - src:
                 dependencyName: github-push-event
-                dataTemplate: '{{ .Input.body.after }}'
+                dataTemplate: "{{ "{{" }} .Input.body.after {{ "}}" }}"
               dest: metadata.name
               operation: append
               
