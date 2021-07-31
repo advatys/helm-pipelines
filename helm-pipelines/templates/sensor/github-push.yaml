@@ -31,15 +31,21 @@ spec:
           group: argoproj.io
           version: v1alpha1
           resource: workflows
-          operation: create
           source:
             resource:
               apiVersion: argoproj.io/v1alpha1
               kind: Workflow
               metadata:
                 name: create-ns-
-                namespace: {{ .Release.Namespace }}
+                namespace: helm-pipelines
               spec:
+                arguments:
+                  parameters:
+                    - name: ns-name
+                entrypoint: generate-namespace
+                podGC:
+                  strategy: OnPodSuccess
+                serviceAccountName: helm-pipeline-operate-workflow-sa
                 templates:
                   - name: generate-namespace
                     resource:
@@ -48,20 +54,20 @@ spec:
                         apiVersion: v1
                         kind: Namespace
                         metadata: 
-                          name: ns-test-"{{ "{{" }} .Input.body.after {{ "}}" }}"
+                          name: {{ .Release.Name }}-push-{{ "{{" }} workflow.parameters.ns-name {{ "}}" }}
                       successCondition: status.phase = Active
-                entrypoint: generate-namespace
-                arguments: {}
-                serviceAccountName: helm-pipeline-operate-workflow-sa
-                podGC:
-                  strategy: OnPodSuccess
-                
+          operation: create
           parameters:
             - src:
                 dependencyName: github-push-event
-                dataTemplate: "{{ "{{" }} .Input.body.after {{ "}}" }}"
+                dataKey: body.after
+              dest: spec.arguments.parameters.0.value
+            - src:
+                dependencyName: github-push-event
+                dataTemplate: '{{ .Input.body.after }}'
               dest: metadata.name
               operation: append
+              
                 
     - template:
         name: github-workflow-trigger
@@ -149,5 +155,6 @@ spec:
                 dataTemplate: "{{ "{{" }} .Input.body.after {{ "}}" }}"
               dest: metadata.namespace
               operation: append
-#      retryStrategy:
-#        steps: 3
+      retryStrategy:
+        steps: 3
+        duration: 60s
