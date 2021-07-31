@@ -149,6 +149,7 @@ spec:
                                     templateRef:
                                       name: {{ .Release.Name }}-push-to-registry-template
                                       template: helm-pipeline
+                                      clusterScope: true
                             
                       successCondition: status.phase == Succeeded
                       failureCondition: status.phase in (Failed, Error)
