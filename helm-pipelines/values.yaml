@@ -27,7 +27,12 @@ secrets:
   oci:
     generate: "true" # when set to true, generate a secret with required keys.
     name: oci-secret
-    
+
+kyvernoPolicy:
+#create a kyverno policy that clone secrets from release's namespace to namespaces' where the pipelines would be executed 
+#set to false if the policy is already created
+  enabled: "true" 
+
 eventbus:
   enabled: "true"
   replicas: 3
