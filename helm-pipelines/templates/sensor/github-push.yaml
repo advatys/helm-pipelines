@@ -28,16 +28,33 @@ spec:
     - template:
         name: create-namespace-trigger
         k8s:
-          group: ""
-          version: v1
-          resource: namespaces
+          group: argoproj.io
+          version: v1alpha1
+          resource: workflows
           operation: create
           source:
             resource:
-              apiVersion: v1
-              kind: Namespace
+              apiVersion: argoproj.io/v1alpha1
+              kind: Workflow
               metadata:
-                name: {{ .Release.Name }}-push-
+                name: create-ns-
+                namespace: {{ .Release.Namespace }}
+              spec:
+                templates:
+                  - name: generate-namespace
+                    resource:
+                      action: create
+                      manifest: |
+                        apiVersion: v1
+                        kind: Namespace
+                        metadata: 
+                          name: ns-test-"{{ "{{" }} .Input.body.after {{ "}}" }}"
+                      successCondition: status.phase = Active
+                entrypoint: generate-namespace
+                arguments: {}
+                serviceAccountName: helm-pipeline-operate-workflow-sa
+                podGC:
+                  strategy: OnPodSuccess
                 
           parameters:
             - src:
