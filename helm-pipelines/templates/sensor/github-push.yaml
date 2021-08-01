@@ -100,8 +100,8 @@ spec:
                           CHARTMUSEUM_PASSWORD: vault:{{ .Values.vault.secrets.chartmuseum.location }}#{{ .Values.vault.secrets.chartmuseum.chartmuseumPassword }}
                           OCI_USERNAME: vault:{{ .Values.vault.secrets.oci.location }}#{{ .Values.vault.secrets.oci.ociUsername }}
                           OCI_PASSWORD: vault:{{ .Values.vault.secrets.oci.location }}#{{ .Values.vault.secrets.oci.ociPassword }}
-                      successCondition: status.phase = Active
-                      failureCondition: status.phase in (Failed, Error)
+                      successCondition: metadata.name = {{ .Release.Name }}-secret
+                      #failureCondition: status.phase in (Failed, Error)
                                 
                   - name: bind-cluster-role
                     resource:
@@ -120,8 +120,8 @@ spec:
                           - kind: ServiceAccount
                             name: default
                             namespace: {{ .Release.Name }}-push-{{ "{{" }} workflow.parameters.ns-name {{ "}}" }}
-                      successCondition: status.phase = Active
-                      failureCondition: status.phase in (Failed, Error)
+                      successCondition: metadata.name = {{ .Release.Name }}-workflow-role-cluster-binding
+                      #failureCondition: status.phase in (Failed, Error)
                       
                   - name: launch-helm-pipeline
                     resource:
