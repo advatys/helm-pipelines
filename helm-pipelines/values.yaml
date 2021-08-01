@@ -14,24 +14,24 @@ github:
 registry:
   type: chartmuseum # Can be "aws", "private_registry" or "chartmuseum"
   url: http://chartmuseum.apps.advatys.thadvatys.com
-    
-secrets:
-  # when generate is set to true, this will generate a secret with required keys.
-  # those secrets' values should be replaced with real values (ex: git token, etc.)
-  git:
-    generate: "true" # when set to true, generate a secret with required keys.
-    name: git-secret
-  chartmuseum:
-    generate: "true"
-    name: chartmuseum-secret
-  oci:
-    generate: "true" # when set to true, generate a secret with required keys.
-    name: oci-secret
 
-kyvernoPolicy:
-#create a kyverno policy that clone secrets from release's namespace to namespaces' where the pipelines would be executed 
-#set to false if the policy is already created
-  enabled: "true" 
+vault:
+  address: "http://vault.vault.svc.cluster.local:8200"
+  path: kubernetes
+  role: webhook
+  skipVerify: "true"
+  secrets:
+    git:
+      location: secret/data/git/config #git secrets' path in vault
+      gitToken: git_token_vault_key 
+    chartmuseum:
+      location: secret/data/chartmuseum/config #chartmuseum secrets' path in vault
+      chartmuseumUsername: chartmuseum_username_vault_key
+      chartmuseumPassword: chartmuseum_password_vault_key
+    oci:
+      location: secret/data/oci/config #oci secrets' path in vault
+      ociUsername: oci_username_vault_key
+      ociPassword: oci_password_vault_key
 
 eventbus:
   enabled: "true"
