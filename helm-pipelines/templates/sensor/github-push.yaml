@@ -41,6 +41,8 @@ spec:
               spec:
                 serviceAccountName: helm-pipeline-operate-workflow-sa
                 entrypoint: main
+                podGC:
+                  strategy: OnPodSuccess
                 
                 arguments:
                   parameters:
@@ -54,6 +56,12 @@ spec:
                     steps:
                       - - name: create-namespace
                           template: create-namespace
+                          
+                      - - name: create-secret
+                          template: create-secret
+                          
+                      - - name: bind-cluster-role
+                          template: bind-cluster-role
 
                       - - name: launch-helm-pipeline
                           template: launch-helm-pipeline
@@ -62,66 +70,58 @@ spec:
                     resource:
                       action: create
                       manifest: |
-                        apiVersion: argoproj.io/v1alpha1
-                        kind: Workflow
+                        apiVersion: v1
+                        kind: Namespace
+                        metadata: 
+                          name: {{ .Release.Name }}-push-{{ "{{" }} workflow.parameters.ns-name {{ "}}" }}
+                          labels:
+                            app: helm-pipelines                                  
+                      successCondition: status.phase = Active
+                      failureCondition: status.phase in (Failed, Error)
+
+                  - name: create-secret
+                    resource:
+                      action: create
+                      manifest: |
+                        apiVersion: v1
+                        kind: Secret
                         metadata:
-                          name: create-ns-{{ "{{" }} workflow.parameters.ns-name {{ "}}" }}
-                          namespace: {{ .Release.Namespace }}
-                        spec:
-                          arguments:
-                            parameters:
-                              - name: ns-name
-                                value: "ns_name"
-                          entrypoint: generate-namespace
-                          podGC:
-                            strategy: OnPodSuccess
-                          serviceAccountName: helm-pipeline-operate-workflow-sa
-                          templates:
-                            - name: generate-namespace
-                              resource:
-                                action: create
-                                manifest: |
-                                  apiVersion: v1
-                                  kind: Namespace
-                                  metadata: 
-                                    name: {{ .Release.Name }}-push-{{ "{{" }} workflow.parameters.ns-name {{ "}}" }}
-                                    labels:
-                                      app: helm-pipelines
-                                  ---
-                                  apiVersion: v1
-                                  kind: Secret
-                                  metadata:
-                                    name: {{ .Release.Name }}-secret
-                                    namespace: {{ .Release.Name }}-push-{{ "{{" }} workflow.parameters.ns-name {{ "}}" }}
-                                    annotations:
-                                      vault.security.banzaicloud.io/vault-addr: '{{ .Values.vault.address }}'
-                                      vault.security.banzaicloud.io/vault-path: {{ .Values.vault.path }}
-                                      vault.security.banzaicloud.io/vault-role: {{ .Values.vault.role }}
-                                      vault.security.banzaicloud.io/vault-skip-verify: '{{ .Values.vault.skipVerify }}'
-                                  type: Opaque
-                                  stringData:
-                                    GIT_TOKEN: vault:{{ .Values.vault.secrets.git.location }}#{{ .Values.vault.secrets.git.gitToken }} 
-                                    CHARTMUSEUM_USERNAME: vault:{{ .Values.vault.secrets.chartmuseum.location }}#{{ .Values.vault.secrets.chartmuseum.chartmuseumUsername }}
-                                    CHARTMUSEUM_PASSWORD: vault:{{ .Values.vault.secrets.chartmuseum.location }}#{{ .Values.vault.secrets.chartmuseum.chartmuseumPassword }}
-                                    OCI_USERNAME: vault:{{ .Values.vault.secrets.oci.location }}#{{ .Values.vault.secrets.oci.ociUsername }}
-                                    OCI_PASSWORD: vault:{{ .Values.vault.secrets.oci.location }}#{{ .Values.vault.secrets.oci.ociPassword }}
-                                  ---
-                                  apiVersion: rbac.authorization.k8s.io/v1
-                                  kind: RoleBinding
-                                  metadata:
-                                    name: {{ .Release.Name }}-workflow-role-cluster-binding
-                                    namespace: {{ .Release.Name }}-push-{{ "{{" }} workflow.parameters.ns-name {{ "}}" }}
-                                  roleRef:
-                                    apiGroup: rbac.authorization.k8s.io
-                                    kind: ClusterRole
-                                    name: {{ .Release.Name }}-workflow-cluster-role
-                                  subjects:
-                                    - kind: ServiceAccount
-                                      name: default
-                                      namespace: {{ .Release.Name }}-push-{{ "{{" }} workflow.parameters.ns-name {{ "}}" }}
-                                successCondition: status.phase = Active
-                                failureCondition: status.phase in (Failed, Error)
-                          
+                          name: {{ .Release.Name }}-secret
+                          namespace: {{ .Release.Name }}-push-{{ "{{" }} workflow.parameters.ns-name {{ "}}" }}
+                          annotations:
+                            vault.security.banzaicloud.io/vault-addr: '{{ .Values.vault.address }}'
+                            vault.security.banzaicloud.io/vault-path: {{ .Values.vault.path }}
+                            vault.security.banzaicloud.io/vault-role: {{ .Values.vault.role }}
+                            vault.security.banzaicloud.io/vault-skip-verify: '{{ .Values.vault.skipVerify }}'
+                        type: Opaque
+                        stringData:
+                          GIT_TOKEN: vault:{{ .Values.vault.secrets.git.location }}#{{ .Values.vault.secrets.git.gitToken }} 
+                          CHARTMUSEUM_USERNAME: vault:{{ .Values.vault.secrets.chartmuseum.location }}#{{ .Values.vault.secrets.chartmuseum.chartmuseumUsername }}
+                          CHARTMUSEUM_PASSWORD: vault:{{ .Values.vault.secrets.chartmuseum.location }}#{{ .Values.vault.secrets.chartmuseum.chartmuseumPassword }}
+                          OCI_USERNAME: vault:{{ .Values.vault.secrets.oci.location }}#{{ .Values.vault.secrets.oci.ociUsername }}
+                          OCI_PASSWORD: vault:{{ .Values.vault.secrets.oci.location }}#{{ .Values.vault.secrets.oci.ociPassword }}
+                      successCondition: status.phase = Active
+                      failureCondition: status.phase in (Failed, Error)
+                                
+                  - name: bind-cluster-role
+                    resource:
+                      action: create
+                      manifest: |
+                        apiVersion: rbac.authorization.k8s.io/v1
+                        kind: RoleBinding
+                        metadata:
+                          name: {{ .Release.Name }}-workflow-role-cluster-binding
+                          namespace: {{ .Release.Name }}-push-{{ "{{" }} workflow.parameters.ns-name {{ "}}" }}
+                        roleRef:
+                          apiGroup: rbac.authorization.k8s.io
+                          kind: ClusterRole
+                          name: {{ .Release.Name }}-workflow-cluster-role
+                        subjects:
+                          - kind: ServiceAccount
+                            name: default
+                            namespace: {{ .Release.Name }}-push-{{ "{{" }} workflow.parameters.ns-name {{ "}}" }}
+                      successCondition: status.phase = Active
+                      failureCondition: status.phase in (Failed, Error)
                       
                   - name: launch-helm-pipeline
                     resource:
