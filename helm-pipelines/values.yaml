@@ -8,12 +8,12 @@ github:
   webhook:
     # url the event-source will use to register at Github.
     # This url must be reachable from outside the cluster.
-    url: github-event.apps.advatys.thadvatys.com
+    url: github-event.apps.sandbox.thadvatys.com
     route: "true" # if set to true, an openshift route will be created
 
 registry:
   type: chartmuseum # Can be "aws", "private_registry" or "chartmuseum"
-  url: http://chartmuseum.apps.advatys.thadvatys.com
+  url: http://chartmuseum.apps.sandbox.thadvatys.com
 
 vault:
   address: "http://vault.vault.svc.cluster.local:8200"
