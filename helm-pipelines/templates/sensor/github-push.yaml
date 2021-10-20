@@ -98,8 +98,8 @@ spec:
                           GIT_TOKEN: vault:{{ .Values.vault.secrets.git.location }}#{{ .Values.vault.secrets.git.gitToken }} 
                           CHARTMUSEUM_USERNAME: vault:{{ .Values.vault.secrets.chartmuseum.location }}#{{ .Values.vault.secrets.chartmuseum.chartmuseumUsername }}
                           CHARTMUSEUM_PASSWORD: vault:{{ .Values.vault.secrets.chartmuseum.location }}#{{ .Values.vault.secrets.chartmuseum.chartmuseumPassword }}
-                          OCI_USERNAME: vault:{{ .Values.vault.secrets.oci.location }}#{{ .Values.vault.secrets.oci.ociUsername }}
-                          OCI_PASSWORD: vault:{{ .Values.vault.secrets.oci.location }}#{{ .Values.vault.secrets.oci.ociPassword }}
+                          #OCI_USERNAME: vault:{{ .Values.vault.secrets.oci.location }}#{{ .Values.vault.secrets.oci.ociUsername }}
+                          #OCI_PASSWORD: vault:{{ .Values.vault.secrets.oci.location }}#{{ .Values.vault.secrets.oci.ociPassword }}
                       successCondition: metadata.name = {{ .Release.Name }}-secret
                       #failureCondition: status.phase in (Failed, Error)
                                 
@@ -153,7 +153,7 @@ spec:
                                 value: {{ .Values.github.repository.name }}
                                 
                               - name: git-branch
-                                value: "git_branch"
+                                value: {{ workflow.parameters.git-branch }}
                               
                               - name: ns-name
                                 value: "ns_name"
@@ -190,7 +190,7 @@ spec:
           parameters:
             - src:
                 dependencyName: github-push-event
-                dataTemplate: '{{ "{{" }} .Input.body.ref {{ "}}" }}' 
+                dataTemplate: '{{ "{{" }} base .Input.body.ref {{ "}}" }}' 
               dest: spec.arguments.parameters.0.value
             - src:
                 dependencyName: github-push-event
