@@ -1,0 +1,199 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Sensor
+metadata:
+  name: {{ .Release.Name }}-github-push
+spec:
+  eventBusName: {{ if eq .Values.eventbus.enabled "true" }}{{ .Release.Name }}-default{{ else }}{{ .Values.eventbus.eventbusName }}{{ end }}
+  template:
+    serviceAccountName: {{ if eq .Values.rbac.operateWorkflow "true" }}{{ .Release.Name }}-operate-workflow-sa{{ else }}{{ .Values.rbac.operateWorkflowSaName }}{{ end }}
+  dependencies:
+    - name: github-push-event
+      eventSourceName: {{ .Release.Name }}-github-events
+      eventName: push
+      filters:
+        data:
+          # Name of the event that triggered the delivery: [pull_request, push, yadayadayada]
+          # https://docs.github.com/en/developers/webhooks-and-events/webhook-events-and-payloads
+          - path: body.X-GitHub-Event
+            type: string
+            value:
+              - push
+#          - path: body.ref
+#            type: string
+#            value:
+#              - refs/heads/{{ .Values.github.repository.branch }}
+
+
+  triggers:
+    - template:
+        name: main
+        k8s:
+          group: argoproj.io
+          version: v1alpha1
+          resource: workflows
+          source:
+            resource:
+
+              apiVersion: argoproj.io/v1alpha1
+              kind: Workflow
+              metadata:
+                generateName: workflow-of-workflows-
+              spec:
+                serviceAccountName: helm-pipeline-operate-workflow-sa
+                entrypoint: main
+                podGC:
+                  strategy: OnPodSuccess
+                
+                arguments:
+                  parameters:
+                    - name: git-branch
+                      value: "git_branch"
+                    - name: ns-name
+                      value: "ns_name"
+                    
+                templates:
+                  - name: main
+                    steps:
+                      - - name: create-namespace
+                          template: create-namespace
+                          
+                      - - name: create-secret
+                          template: create-secret
+                          
+                      - - name: bind-cluster-role
+                          template: bind-cluster-role
+
+                      - - name: launch-helm-pipeline
+                          template: launch-helm-pipeline
+              
+                  - name: create-namespace
+                    resource:
+                      action: create
+                      manifest: |
+                        apiVersion: v1
+                        kind: Namespace
+                        metadata: 
+                          name: {{ .Release.Name }}-push-{{ "{{" }} workflow.parameters.ns-name {{ "}}" }}
+                          labels:
+                            app: helm-pipelines                                  
+                      successCondition: status.phase = Active
+                      failureCondition: status.phase in (Failed, Error)
+
+                  - name: create-secret
+                    resource:
+                      action: create
+                      manifest: |
+                        apiVersion: v1
+                        kind: Secret
+                        metadata:
+                          name: {{ .Release.Name }}-secret
+                          namespace: {{ .Release.Name }}-push-{{ "{{" }} workflow.parameters.ns-name {{ "}}" }}
+                          annotations:
+                            vault.security.banzaicloud.io/vault-addr: '{{ .Values.vault.address }}'
+                            vault.security.banzaicloud.io/vault-path: {{ .Values.vault.path }}
+                            vault.security.banzaicloud.io/vault-role: {{ .Values.vault.role }}
+                            vault.security.banzaicloud.io/vault-skip-verify: '{{ .Values.vault.skipVerify }}'
+                        type: Opaque
+                        stringData:
+                          GIT_TOKEN: vault:{{ .Values.vault.secrets.git.location }}#{{ .Values.vault.secrets.git.gitToken }} 
+                          CHARTMUSEUM_USERNAME: vault:{{ .Values.vault.secrets.chartmuseum.location }}#{{ .Values.vault.secrets.chartmuseum.chartmuseumUsername }}
+                          CHARTMUSEUM_PASSWORD: vault:{{ .Values.vault.secrets.chartmuseum.location }}#{{ .Values.vault.secrets.chartmuseum.chartmuseumPassword }}
+                          #OCI_USERNAME: vault:{{ .Values.vault.secrets.oci.location }}#{{ .Values.vault.secrets.oci.ociUsername }}
+                          #OCI_PASSWORD: vault:{{ .Values.vault.secrets.oci.location }}#{{ .Values.vault.secrets.oci.ociPassword }}
+                      successCondition: metadata.name = {{ .Release.Name }}-secret
+                      #failureCondition: status.phase in (Failed, Error)
+                                
+                  - name: bind-cluster-role
+                    resource:
+                      action: create
+                      manifest: |
+                        apiVersion: rbac.authorization.k8s.io/v1
+                        kind: RoleBinding
+                        metadata:
+                          name: {{ .Release.Name }}-workflow-role-cluster-binding
+                          namespace: {{ .Release.Name }}-push-{{ "{{" }} workflow.parameters.ns-name {{ "}}" }}
+                        roleRef:
+                          apiGroup: rbac.authorization.k8s.io
+                          kind: ClusterRole
+                          name: {{ .Release.Name }}-workflow-cluster-role
+                        subjects:
+                          - kind: ServiceAccount
+                            name: default
+                            namespace: {{ .Release.Name }}-push-{{ "{{" }} workflow.parameters.ns-name {{ "}}" }}
+                      successCondition: metadata.name = {{ .Release.Name }}-workflow-role-cluster-binding
+                      #failureCondition: status.phase in (Failed, Error)
+                      
+                  - name: launch-helm-pipeline
+                    resource:
+                      action: create
+                      manifest: |
+                        apiVersion: argoproj.io/v1alpha1
+                        kind: Workflow
+                        metadata:
+                          name: {{ .Release.Name }}-push-{{ "{{" }} workflow.parameters.ns-name {{ "}}" }}
+                          namespace: {{ .Release.Name }}-push-{{ "{{" }} workflow.parameters.ns-name {{ "}}" }}
+                        spec:
+                          entrypoint: call-push-to-registry-template
+                          
+                          volumeClaimTemplates:
+                          - metadata:
+                              name: workdir
+                            spec:
+                              accessModes: [ "ReadWriteOnce" ]
+                              resources:
+                                requests:
+                                  storage: 1Gi
+                          
+                          arguments:
+                            parameters:
+                              - name: git-owner
+                                value: {{ .Values.github.repository.owner }} 
+                                
+                              - name: git-repository
+                                value: {{ .Values.github.repository.name }}
+                                
+                              - name: git-branch
+                                value: {{ "{{" }} workflow.parameters.git-branch {{ "}}" }}
+                              
+                              - name: ns-name
+                                value: "ns_name"
+                                
+                              - name: git-repository-type
+                                value: {{ .Values.github.repository.type }}
+                              
+                              - name: git-path
+                                value: {{ .Values.github.repository.path }}
+                              
+                              - name: registry-type
+                                value: {{ .Values.registry.type }}
+                              
+                              - name: registry
+                                value: {{ .Values.registry.url }}
+                              
+                              - name: chartname
+                                value: "chart_name"
+                                
+                          templates:
+                            - name: call-push-to-registry-template
+                              dag:
+                                tasks:
+                                  - name: call-push-to-registry-template
+                                    templateRef:
+                                      name: {{ .Release.Name }}-push-to-registry-template
+                                      template: helm-pipeline
+                                      clusterScope: true
+                            
+                      successCondition: status.phase == Succeeded
+                      failureCondition: status.phase in (Failed, Error)
+
+          
+          parameters:
+            - src:
+                dependencyName: github-push-event
+                dataTemplate: '{{ "{{" }} base .Input.body.ref {{ "}}" }}' 
+              dest: spec.arguments.parameters.0.value
+            - src:
+                dependencyName: github-push-event
+                dataKey: body.after
+              dest: spec.arguments.parameters.1.value
+              

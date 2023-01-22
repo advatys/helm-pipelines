@@ -1,0 +1,20 @@
+ {{- if eq .Values.github.webhook.route "true" }}
+kind: Route
+apiVersion: route.openshift.io/v1
+metadata:
+  name: {{ .Release.Name }}-github-event
+  labels:
+    app.kubernetes.io/instance: helm-pipeline
+    controller: eventsource-controller
+    eventsource-name: {{ .Release.Name }}-github-events
+
+spec:
+  host: {{ .Values.github.webhook.url }}
+  to:
+    kind: Service
+    name: {{ .Release.Name }}-github-events-eventsource-svc
+    weight: 100
+  port:
+    targetPort: 12000
+  wildcardPolicy: None
+ {{- end }}

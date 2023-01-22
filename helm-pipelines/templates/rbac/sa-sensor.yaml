@@ -1,0 +1,65 @@
+ {{- if eq .Values.rbac.operateWorkflow "true" }}
+#sa used by the sensor to create workflows
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ .Release.Name }}-operate-workflow-sa
+---
+# Similarly you can use a Role and RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ .Release.Name }}-operate-workflow-cluster-role
+rules:
+  - apiGroups:
+      - argoproj.io
+    verbs:
+      - "*"
+    resources:
+      - workflows
+      - workflowtemplates
+      - cronworkflows
+      - clusterworkflowtemplates
+  - apiGroups:
+      - ""
+    resources:
+      - namespaces
+    verbs:
+      - create
+      - get
+      - watch
+  - apiGroups:
+      - "rbac.authorization.k8s.io"
+    resources:
+      - rolebindings
+    verbs:
+      - create
+      - get
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    verbs:
+      - create
+      - get
+      - watch  
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["clusterroles"]
+    verbs: ["bind"]
+    # omit resourceNames to allow binding any ClusterRole
+    resourceNames: ["{{ .Release.Name }}-workflow-cluster-role"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ .Release.Name }}-operate-workflow-cluster-role-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ .Release.Name }}-operate-workflow-cluster-role
+subjects:
+  - kind: ServiceAccount
+    name: {{ .Release.Name }}-operate-workflow-sa
+    namespace: {{ .Release.Namespace }}
+ {{- end }}
